@@ -376,7 +376,7 @@ class Network(object):
         for n in self.graph.nodes():
             node = pydot.Node(str(n))
             node.set_style('filled')
-            color = 255 - (vec[n-1]/max(vec)*255)
+            color = 255 - (vec[self.node_to_index[n]]/max(vec)*255)
             node.set_fillcolor('#ff%02x%02x' % (color,color))
             G.add_node(node)
 
@@ -384,7 +384,7 @@ class Network(object):
             edge = pydot.Edge(str(u),str(v))
             G.add_edge(edge)
 
-        G.write_png(file_name)
+        G.write_png(file_name, prog='neato')
 
 def main():
     karate = Network(gml_file='karate.gml')
