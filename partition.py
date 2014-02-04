@@ -4,6 +4,8 @@ import pydot
 import hkpr
 import math
 
+np.set_printoptions(precision=20)
+
 def vol(network, subset=None):
     if subset is None:
         vol = np.trace(network.deg_mat)
@@ -38,10 +40,11 @@ def partition_hkpr(network, start_node, target_vol, target_cheeg, approx=False, 
     
     # perform a sweep
     dn_heat_val = {} #dic of probability per degree for each node
+    dn_heat_val_vec = np.zeros(network.size) #vector of probability per degree for each node
     for node in network.graph.nodes():
         dn_heat_val[node] = heat[network.node_to_index[node]]/network.graph.degree(node)
+        dn_heat_val_vec[network.node_to_index[node]] = dn_heat_val[node]
     rank = sorted(dn_heat_val, key=lambda k: dn_heat_val[k], reverse=True) #node ranking (this is a list of nodes!)
-    values = list(dn_heat_val.values()) #XXX we might lose indices here...
 
     sweep_set = []
     for i in range(network.size):
@@ -52,7 +55,7 @@ def partition_hkpr(network, start_node, target_vol, target_cheeg, approx=False, 
             break
         cheeg_ach = cheeg(network, sweep_set) #cheeger ratio of sweep set
         if vol_ach >= target_vol/2 and cheeg_ach <= math.sqrt(6)*target_cheeg:
-            return sweep_set, vol_ach, cheeg_ach, values 
+            return sweep_set, vol_ach, cheeg_ach, dn_heat_val_vec
 
     return None
 
@@ -62,16 +65,22 @@ def main():
     target_vol = 224 
     target_chg = 0.026785714285714284
 
-    (set_true, vol_true, cheeg_true, heat_true) = partition_hkpr(dolphins, start_node, target_vol, target_chg)
+    (set_true, vol_true, cheeg_true, heat_vec_true) = partition_hkpr(dolphins, start_node, target_vol, target_chg)
 #    (set_appr, vol_appr, cheeg_appr, heat_appr) = partition_hkpr(dolphins, start_node, target_vol, target_chg, approx=True, eps=0.1)
 
     print 'true vector results:'
     print 'set: ', set_true
     print 'volume: ', vol_true, '(target = ', target_vol, ')'
     print 'ratio: ', cheeg_true, '(target = ', target_chg, ')'
-    print heat_true
+    print 'vector values:\n', heat_vec_true
 
-    dolphins.draw_hkpr(heat_true, 'dolphins_cut_0.png')
+    # normalize range of vector values to map to a unit interval
+    min_v = min(heat_vec_true)
+    max_v = max(heat_vec_true)
+    norm_v = [(x-min_v)/(max_v-min_v) for x in heat_vec_true]
+    print 'normalized:\n', norm_v
+
+    dolphins.draw_hkpr(norm_v, 'dolphins_cut_0.png')
 
 if __name__ == 'main':
     main()
