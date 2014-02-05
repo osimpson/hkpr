@@ -13,7 +13,6 @@ for i in range(10):
     start_node = np.random.choice(net.graph.nodes(), p=p)
     
     target_vol = len(net.graph.edges())/2
-    print target_vol
     target_chg = 0.03
     
     (set_true, vol_true, cheeg_true, heat_vec_true) = partition.partition_hkpr(net, start_node, target_vol, target_chg)
