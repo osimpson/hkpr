@@ -2,9 +2,21 @@ import numpy as np
 import partition
 import hkpr
 import pickle
+import sys
 
+net_name = sys.argv[1] #name for output files e.g. 'dolphins'
+net_file = sys.argv[2] #file path for network data e.g. './dolphins.gml'
+fformat = sys.argv[3] #file type: gml, nx, or edgelist
 
-net = hkpr.Network(gml_file='dolphins.gml')
+if fformat == 'gml':
+    net = hkpr.Network(gml_file=net_file)
+elif fformat == 'nx':
+    net = hkpr.Network(netx=net_file)
+elif fformat == 'edgelist':
+    net = hkpr.Network(edge_list=net_file)
+else:
+    sys.exit('unknown file format')
+    
 
 for i in range(10):
     # choose start node according to dv/vol(G)
@@ -17,7 +29,7 @@ for i in range(10):
     
     (best_set, best_vol, best_cheeg, heat_val_vec) = partition.min_partition_hkpr(net, start_node, v, phi, approx=False, eps=0.1)
     
-    f = open('dolphins_best'+str(i)+'.txt', 'w')
+    f = open(net_name+'_best'+str(i)+'.txt', 'w')
     
     f.write('start node:'+str(start_node)+'\n')
     f.write('true vector results:\n')
@@ -36,4 +48,4 @@ for i in range(10):
     max_v = max(heat_val_vec)
     norm_v = [(x-min_v)/(max_v-min_v) for x in heat_val_vec]
     
-    net.draw_hkpr(norm_v, 'dolphins_best_cut_test_'+str(start_node)+'.png')
+    net.draw_hkpr(norm_v, net_name+'_best_cut_test_'+str(start_node)+'.png')
