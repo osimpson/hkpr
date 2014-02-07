@@ -13,11 +13,13 @@ class Network(object):
     Base object for heat kernel pagerank computations.
     """
 
-    def __init__(self, gml_file=None, netx=None):
+    def __init__(self, gml_file=None, netx=None, edge_list=None):
         if gml_file:
             self.graph = nx.read_gml(gml_file)
         elif netx:
             self.graph = netx
+        elif edge_list:
+            self.graph = nx.read_edgelist(edge_list)
         else:
             self.graph = None
         self.size = self.graph.number_of_nodes()
@@ -115,7 +117,7 @@ class Network(object):
         # get seed vector
         if start_node is not None:
             f = np.zeros(self.size)
-            f[start_node - 1] = 1.
+            f[self.node_to_index[start_node]] = 1.
         elif seed_vec is not None:
             f = seed_vec
         else:
