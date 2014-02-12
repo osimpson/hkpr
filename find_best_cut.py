@@ -24,12 +24,15 @@ for i in range(10):
     total = sum(net.deg_vec)
     p = net.deg_vec/total
     start_node = np.random.choice(net.graph.nodes(), p=p)
+    print 'start node: ', start_node
 
     v = len(net.graph.edges())/2
     phi = 0.2
     
+    print 'performing a sweep...'
     (best_set, best_vol, best_cheeg, heat_val_vec) = partition.min_partition_hkpr(net, start_node, v, phi, approx=False, eps=0.1)
 
+    print 'normalizing for rendering...'
     # normalize range of vector values to map to a unit interval
     min_v = min(heat_val_vec)
     max_v = max(heat_val_vec)
@@ -61,6 +64,7 @@ for i in range(10):
         f.close()
         
     else:
+        print 'pickling...'
         f = open(net_name+'_best_'+str(start_node)+'.pck', 'wb')
 
         pickle.dump(best_vol, f)
