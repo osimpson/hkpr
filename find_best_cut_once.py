@@ -6,9 +6,9 @@ import sys
 
 net_name = sys.argv[1] #name for output files e.g. 'dolphins'
 net_file = sys.argv[2] #file path for network data e.g. './dolphins.gml'
-fformat = sys.argv[3] #file type: gml, nx, or edgelist
+fformat = sys.argv[3] #file type: gml, nx, edgelist, or pickle
 pkl = sys.argv[4] #True for pickling, False for file writing
-start_node = sys.argv[5]
+start_node = int(sys.argv[5])
 
 print 'building network...'
 if fformat == 'gml':
@@ -17,23 +17,16 @@ elif fformat == 'nx':
     net = hkpr.Network(netx=net_file)
 elif fformat == 'edgelist':
     net = hkpr.Network(edge_list=net_file)
+elif fformat == 'pickle':
+    net = pickle.load(open(net_file,'r'))
 else:
     sys.exit('unknown file format')
 
-if pkl:
-    n = open(net_name+'.pck', 'wb')
-    pickle.dump(net, n)
-    n.close()
-
-#net_name='power-4374'
-#pkl = True
-
-#net = pickle.load(open('powerNetwork.pck', 'r'))
-#start_node = 4374
-
 print 'start node: ', start_node
 print start_node in net.graph.nodes()
-    
+if start_node not in net.graph.nodes():
+    sys.exit('unknown node')
+ 
 v = len(net.graph.edges())/2
 phi = 0.2
 
