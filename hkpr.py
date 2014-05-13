@@ -227,11 +227,15 @@ class Network(object):
             print 'stop:', cur_node
         return cur_node
 
-    def approx_hkpr(self, t, start_node=None, seed_vec=None, eps=0.1, verbose=False):
+    def approx_hkpr(self, t, start_node=None, seed_vec=None, eps=0.1,
+                    verbose=False, out_file=None):
         '''
         Outputs an eps-approximate heat kernel pagerank vector computed
         with random walks.
         '''
+
+        if verbose:
+            f = open(outfile, 'w')
 
         n = self.graph.size()
 
@@ -242,26 +246,38 @@ class Network(object):
         K = (math.log(1.0/eps))/(math.log(math.log(1.0/eps)))
 
         if verbose:
-            print 'r', r
-            print 'K', K
+            f.write('r: '+str(r)+'\n')
+            f.write('K: '+str(K)+'\n\n')
+            #print 'r: ', r
+            #print 'K: ', K
 
         for iter in range(int(r)):
             k = np.random.poisson(lam=t)
             k = int(min(k,K))
+            if verbose:
+                f.write('length of walk\t'+str(k)+'\n')
+            #    print 'length of walk: ', k
 
             v = self.random_walk(k, start_node=start_node, seed_vec=seed_vec, verbose=False)
             
             approxhkpr[v-1] += 1
 
+        if verbose:
+            f.close()
+
         return r, K, approxhkpr/r
 
-    def approx_hkpr_testK(self, t, K, start_node=None, seed_vec=None, eps=0.1, verbose=False):
+    def approx_hkpr_testK(self, t, K=None, start_node=None, seed_vec=None, eps=0.1,
+                          verbose=False, out_file=None):
         '''
 	Function for testing values of K, the max length of a random walk, for
         computing apprixmate heat kernel pagerank.
         Outputs an eps-approximate heat kernel pagerank vector computed
         with random walks.
         '''
+
+        if verbose:
+            f = open(out_file, 'w')
 
         n = self.graph.size()
 
@@ -272,18 +288,23 @@ class Network(object):
         #K = (math.log(1.0/eps))/(math.log(math.log(1.0/eps)))
 
         if verbose:
-            print 'r', r
-            print 'K', K
+            f.write('r: '+str(r)+'\n')
+            #print 'r', r
+            #print 'K', K
 
         for iter in range(int(r)):
             k = np.random.poisson(lam=t)
-            k = int(min(k,K))
+            if K:
+                k = int(min(k,K))
             if verbose:
-                print 'number of steps drawn:', k
+                f.write('length of walk: '+str(k)+'\n')
 
             v = self.random_walk(k, start_node=start_node, seed_vec=seed_vec, verbose=False)
             
             approxhkpr[v-1] += 1
+
+        if verbose:
+            f.close()
 
         return r, K, approxhkpr/r
 
