@@ -255,6 +255,39 @@ class Network(object):
 
         return r, K, approxhkpr/r
 
+    def approx_hkpr_testK(self, t, K, start_node=None, seed_vec=None, eps=0.1, verbose=False):
+        '''
+	Function for testing values of K, the max length of a random walk, for
+        computing apprixmate heat kernel pagerank.
+        Outputs an eps-approximate heat kernel pagerank vector computed
+        with random walks.
+        '''
+
+        n = self.graph.size()
+
+        # initialize 0-vector of size n
+        approxhkpr = np.zeros(self.size) 
+
+        r = (16.0/eps**3)*math.log(n)
+        #K = (math.log(1.0/eps))/(math.log(math.log(1.0/eps)))
+
+        if verbose:
+            print 'r', r
+            print 'K', K
+
+        for iter in range(int(r)):
+            k = np.random.poisson(lam=t)
+            k = int(min(k,K))
+            if verbose:
+                print 'number of steps drawn:', k
+
+            v = self.random_walk(k, start_node=start_node, seed_vec=seed_vec, verbose=False)
+            
+            approxhkpr[v-1] += 1
+
+        return r, K, approxhkpr/r
+
+
     ##Dirichlet
 
     def res_random_walk(self, k, subset, start_node=None, seed_vec=None, verbose=False):
@@ -388,43 +421,43 @@ class Network(object):
 
         G.write_png(file_name, prog='neato')
 
-def main():
-    karate = Network(gml_file='karate.gml')
-    subset = [5,6,7,11,17]
-    t, eps = 35.0, 0.01
-     
-    # choose start node according to dv/vol(G)
-    total = sum(karate.deg_vec)
-    p = karate.deg_vec/total
-    start_node = np.random.choice(karate.graph.nodes(), p=p)
-
-    print 't=',t,'\neps=',eps,'\nstart node=',start_node,'\n'
-
-    #karate.res_random_walk(6,subset,verbose=True)
-    #karate.random_walk(6,verbose=True)
-    h = karate.approx_hkpr(t=t, start_node=start_node, eps=eps, verbose=True)
-    print h
-    print 'sum=',sum(h)
-
-    true = karate.exp_hkpr(t=t, start_node=start_node)
-    print '\n true hkpr:'
-    print true
-    print 'sum=',sum(true)
-
-    # probability-per-degree ranking
-    h_dic = {}
-    true_dic = {}
-    for i in range(karate.size):
-        node = karate.index_to_node[i]
-        h_dic[node] = h[i]/karate.graph.degree(node)
-        true_dic[node] = true[i]/karate.graph.degree(node)
-
-    sorted_h = sorted(h_dic.iteritems(), key=operator.itemgetter(1), reverse=True)
-    sorted_true = sorted(true_dic.iteritems(), key=operator.itemgetter(1), reverse=True)
-
-    print '\napprox ranking','\t\t','true ranking'
-    for i in range(len(sorted_h)):
-        print sorted_h[i],'\t',sorted_true[i]
- 
-if __name__ == 'main':
-    main()
+#def main():
+#    karate = Network(gml_file='karate.gml')
+#    subset = [5,6,7,11,17]
+#    t, eps = 35.0, 0.01
+#     
+#    # choose start node according to dv/vol(G)
+#    total = sum(karate.deg_vec)
+#    p = karate.deg_vec/total
+#    start_node = np.random.choice(karate.graph.nodes(), p=p)
+#
+#    print 't=',t,'\neps=',eps,'\nstart node=',start_node,'\n'
+#
+#    #karate.res_random_walk(6,subset,verbose=True)
+#    #karate.random_walk(6,verbose=True)
+#    h = karate.approx_hkpr(t=t, start_node=start_node, eps=eps, verbose=True)
+#    print h
+#    print 'sum=',sum(h)
+#
+#    true = karate.exp_hkpr(t=t, start_node=start_node)
+#    print '\n true hkpr:'
+#    print true
+#    print 'sum=',sum(true)
+#
+#    # probability-per-degree ranking
+#    h_dic = {}
+#    true_dic = {}
+#    for i in range(karate.size):
+#        node = karate.index_to_node[i]
+#        h_dic[node] = h[i]/karate.graph.degree(node)
+#        true_dic[node] = true[i]/karate.graph.degree(node)
+#
+#    sorted_h = sorted(h_dic.iteritems(), key=operator.itemgetter(1), reverse=True)
+#    sorted_true = sorted(true_dic.iteritems(), key=operator.itemgetter(1), reverse=True)
+#
+#    print '\napprox ranking','\t\t','true ranking'
+#    for i in range(len(sorted_h)):
+#        print sorted_h[i],'\t',sorted_true[i]
+# 
+#if __name__ == 'main':
+#    main()
