@@ -299,14 +299,15 @@ class Network(object):
             if verbose:
                 f.write('length of walk: '+str(k)+'\n')
 
-            v = self.random_walk(k, start_node=start_node, seed_vec=seed_vec, verbose=False)
+            v = self.random_walk(k, start_node=start_node, seed_vec=seed_vec,
+                                 verbose=False)
             
-            approxhkpr[v-1] += 1
+            approxhkpr[self.node_to_index[v]] += 1.0/r
 
         if verbose:
             f.close()
 
-        return r, K, approxhkpr/r
+        return r, K, approxhkpr
 
 
     ##Dirichlet
@@ -482,3 +483,41 @@ class Network(object):
 # 
 #if __name__ == 'main':
 #    main()
+
+#dolphins = Network(gml_file='dolphins.gml')
+#t, eps = 15.0, 0.1
+# 
+## choose start node according to dv/vol(G)
+#total = sum(dolphins.deg_vec)
+#p = dolphins.deg_vec/total
+#start_node = np.random.choice(dolphins.graph.nodes(), p=p)
+#                                                                                     
+#print 't =',t,'\neps =',eps,'\nstart node =',start_node,'\n'
+#                                                                                     
+##karate.res_random_walk(6,subset,verbose=True)
+##karate.random_walk(6,verbose=True)
+#r, K, appr = dolphins.approx_hkpr_testK(t=t, K=None, start_node=start_node, eps=eps,
+#verbose=True, out_file='test_lengths.txt')
+#print '\n no limit walk approx:'
+#print appr
+#print 'sum = ', sum(appr)
+#                                                                                     
+#true = dolphins.exp_hkpr(t=t, start_node=start_node)
+#print '\n true hkpr:'
+#print true
+#print 'sum =', sum(true)
+#                                                                                     
+## probability-per-degree ranking
+#appr_dic = {}
+#true_dic = {}
+#for i in range(dolphins.size):
+#    node = dolphins.index_to_node[i]
+#    appr_dic[node] = appr[i]/dolphins.graph.degree(node)
+#    true_dic[node] = true[i]/dolphins.graph.degree(node)
+#                                                                                     
+#sorted_appr = sorted(appr_dic.iteritems(), key=operator.itemgetter(1), reverse=True)
+#sorted_true = sorted(true_dic.iteritems(), key=operator.itemgetter(1), reverse=True)
+#                                                                                     
+#print '\napprox ranking','\t\t','true ranking'
+#for i in range(len(sorted_appr)):
+#    print sorted_appr[i],'\t',sorted_true[i]
