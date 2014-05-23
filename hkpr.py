@@ -292,10 +292,12 @@ class Network(object):
             #print 'r', r
             #print 'K', K
 
+        avg_length = 0 # average number of random walk steps taken
         for iter in range(int(r)):
             k = np.random.poisson(lam=t)
             if K:
                 k = int(min(k,K))
+            avg_length += k/r 
             if verbose:
                 f.write('length of walk: '+str(k)+'\n')
 
@@ -307,7 +309,7 @@ class Network(object):
         if verbose:
             f.close()
 
-        return r, K, approxhkpr
+        return r, avg_length, approxhkpr
 
 
     ##Dirichlet
