@@ -41,6 +41,9 @@ class Network(object):
             self.index_to_node[i] = node
             i += 1
 
+    def laplacian_combo(self):
+        return self.deg_mat - self.adj_mat
+
 
     ##BUILDING RESTRICTED MATRICES
 
@@ -444,6 +447,7 @@ class Network(object):
             G.add_edge(edge)
 
         G.write_png(file_name, prog='neato')
+
 
 #def main():
 #    karate = Network(gml_file='karate.gml')
