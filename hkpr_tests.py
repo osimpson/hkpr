@@ -78,25 +78,22 @@ def compute_K_noT(eps):
     
     return num/den
 
-file_pre = '/home/olivia/UCSD/projects/data/random_walk_data/'
+file_pre = '/home/olivia/UCSD/projects/data/random_walk_data/power_test_'
 
-data_file='karate.gml'
+data_file='/home/olivia/UCSD/projects/data/power_data/power.gml'
 t=15
 eps=0.05
 n_seeds=2
 n_tests=5
 
-#test_k(data_file, t, eps, None, file_pre+'test_nolim_0.05.txt', n_seeds, n_tests)
+test_k(data_file, t, eps, None, file_pre+'nolim_0.05.txt', n_seeds, n_tests)
 
 #K_new = compute_K(t, eps)
-#test_k(data_file, t, eps, K_new, file_pre+'test_'+str(K_new)+'_0.05.txt', n_seeds, n_tests)
-#
-#K = int((math.log(1.0/eps))/(math.log(math.log(1.0/eps))))
-#
-#for k in range(K, 2*t, 4):
-#    test_k(data_file, t, eps, k, file_pre+'test_'+str(k)+'_0.05.txt', n_seeds, n_tests)
-#
-#test_k(data_file, t, eps, 2*t, file_pre+'test_'+str(2*t)+'_0.05.txt', n_seeds, n_tests)
+#test_k(data_file, t, eps, K_new, file_pre+'power_test_'+str(K_new)+'_0.05.txt', n_seeds, n_tests)
 
-K_old = compute_K_noT(eps)
-test_k(data_file, t, eps, K_old, file_pre+'test_'+str(K_old)+'_0.05.txt', n_seeds, n_tests)
+K = int((math.log(1.0/eps))/(math.log(math.log(1.0/eps))))
+
+for k in range(K, 2*t, 4):
+    test_k(data_file, t, eps, k, file_pre+str(k)+'_0.05.txt', n_seeds, n_tests)
+
+test_k(data_file, t, eps, 2*t, file_pre+str(2*t)+'_0.05.txt', n_seeds, n_tests)
