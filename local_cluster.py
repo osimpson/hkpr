@@ -3,7 +3,18 @@ import networkx as nx
 import numpy as np
 import pydot
 
-def approx_hkpr(Net, t, start_node=None, seed_vec=None, eps=0.1,
+def approx_hkpr_multiply(Net, t, seed_vec=None, trials=100):
+	k = np.random.poisson(lam=t)
+	appr = np.dot(seed_vec, np.linalg.matrix_power(Net.walk_mat, k))
+	for r in range(trials-1):
+		k = np.random.poisson(lam=t)
+		appr += np.dot(seed_vec, np.linalg.matrix_power(Net.walk_mat, k))
+	appr = appr/trials
+
+	return appr
+
+
+def approx_hkpr(Net, t, seed_vec=None, eps=0.01,
                 verbose=False):
     '''
     Outputs an eps-approximate heat kernel pagerank vector computed
@@ -25,7 +36,7 @@ def approx_hkpr(Net, t, start_node=None, seed_vec=None, eps=0.1,
         k = np.random.poisson(lam=t)
         k = int(min(k,K))
 
-        v = Net.random_walk(k, start_node=start_node, seed_vec=seed_vec, verbose=False)
+        v = Net.random_walk(k, seed_vec=seed_vec, verbose=False)
         
         approxhkpr[Net.node_to_index[v]] += 1
 

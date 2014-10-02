@@ -1,10 +1,8 @@
 import networkx as nx
 import numpy as np
-import math
-import scipy
-from scipy import linalg
 import pydot
 import operator
+import scipy
 
 class Network(object):
     """
@@ -31,6 +29,34 @@ class Network(object):
             self.node_to_index[node] = i
             self.index_to_node[i] = node
             i += 1
+
+    
+    def random_hop_cluster(self, hops, node=None):
+        if node is None:
+            node = np.random.choice(self.graph.nodes())
+
+        cluster = [node]
+        for i in range(hops):
+            add_cluster = []
+            for n in cluster:
+                add_cluster.extend(self.graph.neighbors(n))
+            cluster.extend(add_cluster)
+
+        return cluster
+
+    def random_hop_cluster_size(self, size, node=None):
+        if node is None:
+            node = np.random.choice(self.graph.nodes())
+
+        cluster = [node]
+        while len(cluster) < size:
+            add_cluster = []
+            for n in cluster:
+                add_cluster.extend(self.graph.neighbors(n))
+            cluster.extend(add_cluster)
+
+        return cluster
+
 
     def draw_vec(self, vec, file_name):
 
@@ -81,16 +107,13 @@ class Localnetwork(Network):
         return scipy.linalg.expm(-t*laplace) 
 
 
-    def exp_hkpr(self, t, start_node=None, seed_vec=None):
+    def exp_hkpr(self, t, seed_vec=None):
         '''
         Exact computation of hkpr(t,f) = f^T H_t.
         '''
 
         # get seed vector
-        if start_node is not None:
-            f = np.zeros(self.size)
-            f[self.node_to_index[start_node]] = 1.
-        elif seed_vec is not None:
+        if seed_vec is not None:
             f = seed_vec
         else:
             print 'no seed vector given'
@@ -102,7 +125,7 @@ class Localnetwork(Network):
 
     ##APPROXIMATIONS
 
-    def random_walk(self, k, start_node=None, seed_vec=None, verbose=False):
+    def random_walk(self, k, seed_vec=None, verbose=False):
         '''
         Outputs the last node visited in a k-step random walk on the graph.
         If start_node given, walk starts from start_node.
@@ -110,10 +133,7 @@ class Localnetwork(Network):
         If neither are given, walk starts from a node drawn from
         p(v) = d(v)/vol(G).
         '''
-
-        if start_node is not None:
-            cur_node = start_node
-        elif seed_vec is not None:
+        if seed_vec is not None:
             cur_node = np.random.choice(self.graph.nodes(), p=seed_vec)
         else:
             # choose start node according to dv/vol(G)
@@ -132,33 +152,8 @@ class Localnetwork(Network):
             print 'stop:', cur_node
         return cur_node
 
-    def approx_hkpr(self, t, start_node=None, seed_vec=None, eps=0.1,
-                    verbose=False):
-        '''
-        Outputs an eps-approximate heat kernel pagerank vector computed
-        with random walks.
-        '''
-        n = self.graph.size()
 
-        # initialize 0-vector of size n
-        approxhkpr = np.zeros(self.size) 
-
-        # r = (16.0/eps**3)*math.log(n)
-        r = (16.0/eps)*math.log(n)
-        # K = (math.log(1.0/eps))/(math.log(math.log(1.0/eps)))
-        K = t
-
-        if verbose:
-            print 'r: ', r
-            print 'K: ', K
-
-        for iter in range(int(r)):
-            k = np.random.poisson(lam=t)
-            k = int(min(k,K))
-
-            v = self.random_walk(k, start_node=start_node, seed_vec=seed_vec, verbose=False)
-            
-            approxhkpr[self.node_to_index[v]] += 1
-
-        return approxhkpr/r
-
+def indicator_vector(Net, node):
+    chi = np.zeros(Net.size)
+    chi[Net.node_to_index[node]] = 1.0
+    return chi
