@@ -58,6 +58,33 @@ class Network(object):
         return cluster
 
 
+    def random_walk(self, k, seed_vec=None, verbose=False):
+        '''
+        Outputs the last node visited in a k-step random walk on the graph.
+        If start_node given, walk starts from start_node.
+        If seed_vec given, walk starts from a node drawn from seed_vec.
+        If neither are given, walk starts from a node drawn from
+        p(v) = d(v)/vol(G).
+        '''
+        if seed_vec is not None:
+            cur_node = draw_node_from_dist(self, seed_vec)
+        else:
+            # choose start node according to dv/vol(G)
+            total = sum(self.deg_vec)
+            p = self.deg_vec/total
+            cur_node = np.random.choice(self.graph.nodes(), p=p)
+        if verbose:
+            print 'start:', cur_node
+        for steps in range(k):
+            next_node = np.random.choice(self.graph.neighbors(cur_node))
+            cur_node = next_node
+            if verbose:
+                print cur_node
+        if verbose:
+            print 'stop:', cur_node
+        return cur_node
+
+
     def draw_vec(self, vec, file_name):
 
         G = pydot.Dot(graph_type='graph')
@@ -99,7 +126,6 @@ class Localnetwork(Network):
         '''
         Exact computation of H_t = exp{-t(I-P)} with the matrix exponential.
         '''
-
         # \Delta = I - P
         laplace = np.eye(self.size) - self.walk_mat
 
@@ -111,7 +137,6 @@ class Localnetwork(Network):
         '''
         Exact computation of hkpr(t,f) = f^T H_t.
         '''
-
         # get seed vector
         if seed_vec is not None:
             f = seed_vec
@@ -123,8 +148,6 @@ class Localnetwork(Network):
         return np.transpose(f).dot(heat_ker)
 
 
-    ##APPROXIMATIONS
-
     def random_walk(self, k, seed_vec=None, verbose=False):
         '''
         Outputs the last node visited in a k-step random walk on the graph.
@@ -134,7 +157,8 @@ class Localnetwork(Network):
         p(v) = d(v)/vol(G).
         '''
         if seed_vec is not None:
-            cur_node = np.random.choice(self.graph.nodes(), p=seed_vec)
+            cur_node = draw_node_from_dist(self, seed_vec)
+            # cur_node = np.random.choice(self.graph.nodes(), p=seed_vec)
         else:
             # choose start node according to dv/vol(G)
             total = sum(self.deg_vec)
@@ -144,7 +168,8 @@ class Localnetwork(Network):
             print 'start:', cur_node
         for steps in range(k):
             p = np.asarray(self.walk_mat)[self.node_to_index[cur_node]]
-            next_node = np.random.choice(self.graph.nodes(), p=p)
+            next_node = draw_node_from_dist(self, p)
+            # next_node = np.random.choice(self.graph.nodes(), p=p)
             cur_node = next_node
             if verbose:
                 print cur_node
@@ -157,3 +182,9 @@ def indicator_vector(Net, node):
     chi = np.zeros(Net.size)
     chi[Net.node_to_index[node]] = 1.0
     return chi
+
+
+def draw_node_from_dist(Net, dist_vec):
+    indx = np.random.choice(Net.index_to_node.keys(), p=dist_vec)
+    node = Net.index_to_node[indx]
+    return node
