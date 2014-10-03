@@ -4,6 +4,8 @@ import pydot
 import operator
 import scipy
 
+execfile('/home/olivia/UCSD/projects/datasets/datasets.py')
+
 class Network(object):
     """
     Network object initialized from a gml file or networkx graph.
@@ -13,10 +15,10 @@ class Network(object):
     def __init__(self, gml_file=None, netx=None, edge_list=None):
         if gml_file:
             self.graph = nx.read_gml(gml_file)
-        elif netx:
-            self.graph = netx
         elif edge_list:
             self.graph = nx.read_edgelist(edge_list)
+        elif netx:
+            self.graph = netx
         else:
             self.graph = None
         self.size = self.graph.number_of_nodes()
