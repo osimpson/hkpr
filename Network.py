@@ -32,7 +32,7 @@ class Network(object):
             self.index_to_node[i] = node
             i += 1
 
-    
+
     def random_hop_cluster(self, hops, node=None):
         if node is None:
             node = np.random.choice(self.graph.nodes())
@@ -86,23 +86,6 @@ class Network(object):
             print 'stop:', cur_node
         return cur_node
 
-
-    def draw_vec(self, vec, file_name):
-
-        G = pydot.Dot(graph_type='graph')
-
-        for n in self.graph.nodes():
-            node = pydot.Node(str(n))
-            node.set_style('filled')
-            color = 255 - (vec[self.node_to_index[n]]/max(vec)*255)
-            node.set_fillcolor('#ff%02x%02x' % (color,color))
-            G.add_node(node)
-
-        for (u,v) in self.graph.edges():
-            edge = pydot.Edge(str(u),str(v))
-            G.add_edge(edge)
-
-        G.write_png(file_name, prog='neato')
 
 
 class Localnetwork(Network):
@@ -190,3 +173,29 @@ def draw_node_from_dist(Net, dist_vec):
     indx = np.random.choice(Net.index_to_node.keys(), p=dist_vec)
     node = Net.index_to_node[indx]
     return node
+
+
+def get_node_vector_values(Net, vec):
+    vals = {}
+    for i in range(vec.size):
+        vals[Net.index_to_node[i]] = vec[i]
+    return vals
+
+
+def draw_vec(self, vec, file_name):
+
+    G = pydot.Dot(graph_type='graph')
+
+    for n in self.graph.nodes():
+        node = pydot.Node(str(n))
+        node.set_style('filled')
+        color = 255 - (vec[self.node_to_index[n]]/max(vec)*255)
+        node.set_fillcolor('#ff%02x%02x' % (color,color))
+
+        G.add_node(node)
+
+    for (u,v) in self.graph.edges():
+        edge = pydot.Edge(str(u),str(v))
+        G.add_edge(edge)
+
+    G.write_png(file_name, prog='neato')
