@@ -82,7 +82,10 @@ def approx_hkpr_err(true, appr, eps):
         return
     err = 0
     for i in range(true.size):
-        comp_err = (abs(true[i]-appr[i])) - (eps*true[i])
+        if appr[i] == 0:
+            comp_err = appr[i] - eps
+        else:
+            comp_err = (abs(true[i]-appr[i])) - (eps*true[i])
         if comp_err > 0:
             err += comp_err
     return err
