@@ -176,7 +176,8 @@ class Localnetwork(Network):
         '''
         f = seed_vec
         heat_ker = self.heat_ker(t)
-        return np.dot(np.transpose(f), heat_ker)
+        hkpr = np.dot(np.transpose(f), heat_ker)
+        return get_node_vector_values(self, hkpr)
 
 
     def random_walk(self, k, seed_vec=None, verbose=False):
@@ -216,7 +217,15 @@ class Localnetwork(Network):
         rhs = alpha*seed_vec
 
         pr = np.linalg.solve(lhs, rhs)
-        return pr
+        return get_node_vector_values(self, pr)
+
+    def nxpagerank(self, seed_vec, alpha=0.85):
+        #build personalization dict from seed_vec
+        pref = {}
+        for nd in self.graph.nodes():
+            pref[nd] = seed_vec[self.node_to_index[nd]]
+
+        return nx.pagerank(self.graph, alpha=alpha, personalization=pref)
 
 
 def indicator_vector(Net, node=None):

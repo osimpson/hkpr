@@ -27,7 +27,7 @@ def approx_hkpr_matmult(Net, t, seed_vec=None, eps=0.01, verbose=False):
     appr = appr/r
     appr = np.array(appr)[0]
 
-    return appr
+    return get_node_vector_values(Net, appr)
 
 def approx_hkpr_rwk(Net, k, seed_vec=None, eps=0.01, verbose=False):
     """
@@ -48,8 +48,9 @@ def approx_hkpr_rwk(Net, k, seed_vec=None, eps=0.01, verbose=False):
     for i in range(int(r)):
         v = Net.random_walk(k, seed_vec=seed_vec, verbose=False)
         approxhkpr[Net.node_to_index[v]] += 1
+    approxhkpr = approxhkpr/r
 
-    return approxhkpr/r
+    return get_node_vector_values(Net, approxhkpr)
 
 
 def approx_hkpr(Net, t, seed_vec=None, eps=0.01, verbose=False):
@@ -75,12 +76,11 @@ def approx_hkpr(Net, t, seed_vec=None, eps=0.01, verbose=False):
     for i in range(int(r)):
         k = np.random.poisson(lam=t)
         # k = int(min(k,K))
-
         v = Net.random_walk(k, seed_vec=seed_vec, verbose=False)
-        
         approxhkpr[Net.node_to_index[v]] += 1
+    approxhkpr = approxhkpr/r
 
-    return approxhkpr/r
+    return get_node_vector_values(Net, approxhkpr)
 
 
 def approx_hkpr_err(true, appr, eps):
