@@ -27,35 +27,67 @@ class Network(object):
         self.node_to_index = {}
         self.index_to_node = {}
         i = 0
-        for node in sorted(self.graph.nodes()):
-            self.node_to_index[node] = i
-            self.index_to_node[i] = node
+        for nd in sorted(self.graph.nodes()):
+            self.node_to_index[nd] = i
+            self.index_to_node[i] = nd
             i += 1
 
 
-    def random_hop_cluster(self, hops, node=None):
-        if node is None:
-            node = np.random.choice(self.graph.nodes())
+    def volume(self, subset=None):
+        if subset is None:
+            vol = 2*self.graph.number_of_edges()
+        else:
+            vol = 0
+            for nd in subset:
+                vol += self.graph.degree(nd)
+        return vol
 
-        cluster = [node]
+
+    def edge_boundary(self, subset):
+        '''
+        Outputs the size of the edge boundary of the subset in the network.
+        '''
+        edge_bound = 0
+        for nd in subset:
+            for v in self.graph.neighbors(nd):
+                if v not in subset:
+                    edge_bound += 1
+        return edge_bound
+
+
+    def cheeger_ratio(self, subset):
+        cheeg = float(self.edge_boundary(subset))/self.volume(subset=subset)
+        return cheeg
+   
+
+    def random_hop_cluster_hops(self, hops, start_node=None):
+        if start_node is None:
+            start_node = np.random.choice(self.graph.nodes())
+
+        cluster = [start_node]
         for i in range(hops):
             add_cluster = []
-            for n in cluster:
-                add_cluster.extend(self.graph.neighbors(n))
+            for nd in cluster:
+                add_cluster.extend(self.graph.neighbors(nd))
             cluster.extend(add_cluster)
 
         return cluster
+    
+    def random_hop_cluster_size(self, size, start_node=None):
+        if size > self.size:
+            print 'cluster size exceeds graph size, returning full graph set'
+            return self.graph.nodes()
 
-    def random_hop_cluster_size(self, size, node=None):
-        if node is None:
-            node = np.random.choice(self.graph.nodes())
+        if start_node is None:
+            start_node = np.random.choice(self.graph.nodes())
 
-        cluster = [node]
+        cluster = [start_node]
         while len(cluster) < size:
             add_cluster = []
-            for n in cluster:
-                add_cluster.extend(self.graph.neighbors(n))
+            for nd in cluster:
+                add_cluster.extend(self.graph.neighbors(nd))
             cluster.extend(add_cluster)
+            cluster = list(set(cluster))
 
         return cluster
 
@@ -97,9 +129,29 @@ class Localnetwork(Network):
         d = np.sum(self.adj_mat, axis=1)
         self.deg_vec = np.zeros(self.size)
         self.deg_mat = np.zeros((self.size, self.size))
-        for i in range(self.size):
+        for n in self.graph.nodes():
+            i = self.node_to_index[n]
             self.deg_vec[i] = d[i,0]
             self.deg_mat[i,i] = d[i,0]
+        # for i in range(self.size):
+        #     self.deg_vec[i] = d[i,0]
+        #     self.deg_mat[i,i] = d[i,0]
+        self.walk_mat = np.linalg.inv(self.deg_mat)*self.adj_mat
+
+
+    def __init__(self, gml_file=None, netx=None, edge_list=None):
+        Network.__init__(self, gml_file=gml_file, netx=netx, edge_list=edge_list)
+        self.adj_mat = nx.to_numpy_matrix(self.graph, nodelist=sorted(self.graph.nodes()))
+        d = np.sum(self.adj_mat, axis=1)
+        self.deg_vec = np.zeros(self.size)
+        self.deg_mat = np.zeros((self.size, self.size))
+        for n in self.graph.nodes():
+            i = self.node_to_index[n]
+            self.deg_vec[i] = d[i,0]
+            self.deg_mat[i,i] = d[i,0]
+        # for i in range(self.size):
+        #     self.deg_vec[i] = d[i,0]
+        #     self.deg_mat[i,i] = d[i,0]
         self.walk_mat = np.linalg.inv(self.deg_mat)*self.adj_mat
 
 
@@ -118,19 +170,13 @@ class Localnetwork(Network):
         return scipy.linalg.expm(-t*laplace) 
 
 
-    def exp_hkpr(self, t, seed_vec=None):
+    def exp_hkpr(self, t, seed_vec):
         '''
         Exact computation of hkpr(t,f) = f^T H_t.
         '''
-        # get seed vector
-        if seed_vec is not None:
-            f = seed_vec
-        else:
-            print 'no seed vector given'
-            return
- 
+        f = seed_vec
         heat_ker = self.heat_ker(t)
-        return np.transpose(f).dot(heat_ker)
+        return np.dot(np.transpose(f), heat_ker)
 
 
     def random_walk(self, k, seed_vec=None, verbose=False):
@@ -163,7 +209,19 @@ class Localnetwork(Network):
         return cur_node
 
 
-def indicator_vector(Net, node):
+    def pagerank(self, seed_vec, alpha=0.85):
+        I = np.identity(self.size)
+        Z = 0.5*(I + self.walk_mat)
+        lhs = I - (1.0-alpha)*Z
+        rhs = alpha*seed_vec
+
+        pr = np.linalg.solve(lhs, rhs)
+        return pr
+
+
+def indicator_vector(Net, node=None):
+    if node is None:
+        node = np.random.choice(Net.graph.nodes())
     chi = np.zeros(Net.size)
     chi[Net.node_to_index[node]] = 1.0
     return chi
@@ -181,15 +239,59 @@ def get_node_vector_values(Net, vec):
         vals[Net.index_to_node[i]] = vec[i]
     return vals
 
+def get_normalized_node_vector_values(Net, vec):
+    vals = {}
+    for i in range(vec.size):
+        node = Net.index_to_node[i]
+        vals[node] = vec[i]/Net.graph.degree(node)
+    return vals
 
-def draw_vec(self, vec, file_name):
+
+def draw_vec(self, vec, file_name, label_names=True):
 
     G = pydot.Dot(graph_type='graph')
 
+    # normalize range of vector values to map to a unit interval
+    min_v = min(vec)
+    max_v = max(vec)
+    norm_v = [(x-min_v)/(max_v-min_v) for x in vec]
+
+    for n in self.graph.nodes():
+        if label_names:
+            node = pydot.Node(str(n))
+        else:
+            node = pydot.Node("")
+        node.set_style('filled')
+        color = 255 - (norm_v[self.node_to_index[n]]/max(norm_v)*255)
+        node.set_fillcolor('#ff%02x%02x' % (color,color))
+
+        G.add_node(node)
+
+    for (u,v) in self.graph.edges():
+        edge = pydot.Edge(str(u),str(v))
+        G.add_edge(edge)
+
+    G.write_png(file_name, prog='neato')
+
+def draw_vec(self, dic, file_name, label_names=True):
+
+    G = pydot.Dot(graph_type='graph')
+
+    # normalize range of vector values to map to a unit interval
+    min_v = min(dic.values())
+    max_v = max(dic.values())
+    norm_d = {}
+    for nd in dic:
+        norm_d[nd] = (dic[nd]-min_v)/(max_v-min_v)
+    
+    maxval = max(norm_d.values())
     for n in self.graph.nodes():
         node = pydot.Node(str(n))
         node.set_style('filled')
-        color = 255 - (vec[self.node_to_index[n]]/max(vec)*255)
+        node.set_shape('circle')
+        if not label_names:
+            node.set_label(" ")
+        color = 255 - (norm_d[n]/maxval*255)
         node.set_fillcolor('#ff%02x%02x' % (color,color))
 
         G.add_node(node)
