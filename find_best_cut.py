@@ -1,77 +1,95 @@
 import numpy as np
-import partition
-import hkpr
+import local_cluster as lc 
+from Network import *
 import pickle
-import sys
+from optparse import OptionParser
 
-net_name = sys.argv[1] #name for output files e.g. 'dolphins'
-net_file = sys.argv[2] #file path for network data e.g. './dolphins.gml'
-fformat = sys.argv[3] #file type: gml, nx, or edgelist
-pkl = sys.argv[4] #True for pickling, False for file writing
+execfile('/home/olivia/UCSD/projects/datasets/datasets.py')
 
-if fformat == 'gml':
-    net = hkpr.Network(gml_file=net_file)
-elif fformat == 'nx':
-    net = hkpr.Network(netx=net_file)
-elif fformat == 'edgelist':
-    net = hkpr.Network(edge_list=net_file)
+parser = OptionParser()
+parser.add_option("-f", "--fformat", dest="fformat", action="store",
+                  help="file format of dataset")
+parser.add_option("-d", "--dataset", dest="dataset", action="store",
+                  help="dataset")
+parser.add_option("-a", "--approx", dest="approx", action="store", type="string", default=False,
+                  help="type of vector approximation")
+parser.add_option("-s", "--startnode", dest="start_node", action="store", default=None,
+                  help="start node if specified")
+parser.add_option("-r", "--iters", dest="r", action="store", type=int, default=10,
+                  help="number of random iterations")
+parser.add_option("-o", "--outfile", dest="outfile", action="store")
+parser.add_option("-p", "--pngout", dest="pngout", action="store", default=None)
+
+(options, args) = parser.parse_args()
+
+if options.fformat == 'gml':
+    Net = Localnetwork(gml_file=GRAPH_DATASETS[options.dataset])
+elif options.fformat == 'nx':
+    Net = Localnetwork(netx=GRAPH_DATASETS[options.dataset])
+elif options.fformat == 'edgelist':
+    Net = Localnetwork(edge_list=GRAPH_DATASETS[options.dataset])
 else:
     sys.exit('unknown file format')
     
+f = open(options.outfile, 'w')
 
-for i in range(10):
-    # choose start node according to dv/vol(G)
-    total = sum(net.deg_vec)
-    p = net.deg_vec/total
-    start_node = np.random.choice(net.graph.nodes(), p=p)
+best_start = None
+best_cheeg = 1.0
+best_vol = 0.0
+for i in range(options.r):
+    start_node = options.start_node
+    if start_node is None:
+        # choose start node according to dv/vol(G)
+        total = Net.volume() 
+        p = Net.deg_vec/total
+        start_node = np.random.choice(Net.graph.nodes(), p=p)
     print 'start node: ', start_node
-
-    v = len(net.graph.edges())/2
-    phi = 0.2
+    # try:
+    #     seed = indicator_vector(Net, start_node)
+    # except KeyError:
+    #     seed = indicator_vector(Net, int(start_node))
     
     print 'performing a sweep...'
-    (best_set, best_vol, best_cheeg, heat_val_vec) = partition.min_partition_hkpr(net, start_node, v, phi, approx=False, eps=0.1)
+    heat_vals, vol, cheeg = lc.local_cluster_hkpr_mincheeg(Net, start_node, approx=options.approx)
 
-    print 'normalizing for rendering...'
-    # normalize range of vector values to map to a unit interval
-    min_v = min(heat_val_vec)
-    max_v = max(heat_val_vec)
-    norm_v = [(x-min_v)/(max_v-min_v) for x in heat_val_vec]
+    if cheeg < best_cheeg:
+        best_cheeg = cheeg
+        best_vol = vol
+        best_start = start_node
 
-    if not pkl:    
-        f = open(net_name+'_best_'+str(start_node)+'.txt', 'w')
-        
-        f.write('start node:'+str(start_node)+'\n')
-        f.write('true vector results:\n')
-
-        f.write('set: [')
-        for s in best_set:
-            f.write(str(s)+', ')
-        f.write(']\n')
-
-        f.write('volume: '+str(best_vol)+'\n')
-
-        f.write('ratio: '+str(best_cheeg)+'\n')
-
-        f.write('vector values:\n')
-        for i in range(len(heat_val_vec)):
-            f.write(str(i)+'\t'+str(heat_val_vec[i])+'\n')
-
-        f.write('range normalized for drawing:\n')
-        for i in range(len(norm_v)):
-            f.write(str(i)+'\t'+str(norm_v[i])+'\n')
-
-        f.close()
-        
-    else:
-        print 'pickling...'
-        f = open(net_name+'_best_'+str(start_node)+'.pck', 'wb')
-
-        pickle.dump(best_vol, f)
-        pickle.dump(best_cheeg, f)
-        pickle.dump(heat_val_vec, f)
-        pickle.dump(norm_v, f)
-
-        f.close()
+    if options.pngout is not None:
+        print 'rendering...'
+        draw_vec(Net, heat_vals, options.pngout+str(start_node)+'.png')
     
-    net.draw_hkpr(norm_v, net_name+'_best_cut_test_'+str(start_node)+'.png')
+    f.write('start node:'+str(start_node)+'\n')
+    # f.write('true vector results:\n')
+
+    # f.write('set: [')
+    # for s in best_set:
+        # f.write(str(s)+', ')
+    # f.write(']\n')
+
+    f.write('volume: '+str(vol)+'\n')
+
+    f.write('ratio: '+str(cheeg)+'\n\n')
+
+    # f.write('vector values:\n')
+    # for i in range(len(heat_val_vec)):
+        # f.write(str(i)+'\t'+str(heat_val_vec[i])+'\n')
+
+print '\nbest seed node:', best_start
+print 'cheeger ratio:', best_cheeg
+print 'cluster volume:', best_vol
+
+f.write('best seed node: '+str(best_start))
+f.write(' cheeger ratio: '+str(best_cheeg))
+f.write(' cluster volume: '+str(best_vol))
+f.close()
+        
+    # print 'pickling...'
+    # f = open(net_name+'_best_'+str(start_node)+'.pck', 'wb')
+
+    # pickle.dump(best_vol, f)
+    # pickle.dump(best_cheeg, f)
+    # pickle.dump(heat_val_vec, f)
+    # pickle.dump(norm_v, f)
