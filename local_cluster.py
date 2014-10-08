@@ -68,16 +68,16 @@ def approx_hkpr_seed(Net, t, start_node, eps=0.01, verbose=False, normalized=Fal
     n = Net.size
     approxhkpr = np.zeros(n) 
 
-    # r = (16.0/eps**3)*np.log(n)
+    r = (16.0/eps**3)*np.log(n)
     # r = (16.0/eps**2)*np.log(n)
-    r = (16.0/eps)*np.log(n)
+    # r = (16.0/eps)*np.log(n)
 
     # K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
     # K = t
 
     if verbose:
         print 'r: ', r
-        print 'K: ', K
+        # print 'K: ', K
 
     for i in range(int(r)):
         k = np.random.poisson(lam=t)
@@ -199,8 +199,8 @@ def local_cluster_hkpr_mincheeg(Net, start_node, target_size=None,
     return sweep_heat_vals, best_vol, min_cheeg
 
 
-def local_cluster_pr(Net, seed_vec, target_cheeg=None):
-
+def local_cluster_pr(Net, start_node, target_cheeg=None):
+    seed_vec = indicator_vector(Net, start_node)
     if target_cheeg is None:
         target_cheeg = 1./3
     alpha = (target_cheeg**2)/(255*np.log(100*np.sqrt(Net.graph.number_of_edges())))
@@ -231,8 +231,8 @@ def local_cluster_pr(Net, seed_vec, target_cheeg=None):
     return None
 
 
-def local_cluster_pr_mincheeg(Net, seed_vec, target_cheeg=None):
-
+def local_cluster_pr_mincheeg(Net, start_node, target_cheeg=None):
+    seed_vec = indicator_vector(Net, start_node)
     if target_cheeg is None:
         target_cheeg = 1./3
     alpha = (target_cheeg**2)/(255*np.log(100*np.sqrt(Net.graph.number_of_edges())))
