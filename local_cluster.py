@@ -10,7 +10,7 @@ np.set_printoptions(precision=20)
 #####################################################################
 
 
-def approx_hkpr_matmult(Net, t, seed_vec=None, eps=0.01, verbose=False):
+def approx_hkpr_matmult(Net, t, seed_vec=None, eps=0.01, verbose=False, normalized=False):
     """
     Use matrix multiplication to estimate a heat kernel pagerank vector as an
     expected distribution of random walks
@@ -27,9 +27,12 @@ def approx_hkpr_matmult(Net, t, seed_vec=None, eps=0.01, verbose=False):
     appr = appr/r
     appr = np.array(appr)[0]
 
-    return get_node_vector_values(Net, appr)
+    if normalized:
+        return get_normalized_node_vector_values(Net, appr)
+    else:
+        return get_node_vector_values(Net, appr)
 
-def approx_hkpr_rwk(Net, k, seed_vec=None, eps=0.01, verbose=False):
+def approx_matmult_rwk(Net, k, seed_vec=None, eps=0.01, verbose=False, normalized=False):
     """
     Tool for checking approximating fP^k with random walks of length k
     """
@@ -50,10 +53,13 @@ def approx_hkpr_rwk(Net, k, seed_vec=None, eps=0.01, verbose=False):
         approxhkpr[Net.node_to_index[v]] += 1
     approxhkpr = approxhkpr/r
 
-    return get_node_vector_values(Net, approxhkpr)
+    if normalized:
+        return get_normalized_node_vector_values(Net, approxhkpr)
+    else:
+        return get_node_vector_values(Net, approxhkpr)
 
 
-def approx_hkpr(Net, t, seed_vec=None, eps=0.01, verbose=False):
+def approx_hkpr_seed(Net, t, start_node, eps=0.01, verbose=False, normalized=False):
     '''
     Outputs an eps-approximate heat kernel pagerank vector computed
     with random walks.
@@ -63,8 +69,8 @@ def approx_hkpr(Net, t, seed_vec=None, eps=0.01, verbose=False):
     approxhkpr = np.zeros(n) 
 
     # r = (16.0/eps**3)*np.log(n)
-    r = (16.0/eps**2)*np.log(n)
-    # r = (16.0/eps)*np.log(n)
+    # r = (16.0/eps**2)*np.log(n)
+    r = (16.0/eps)*np.log(n)
 
     # K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
     # K = t
@@ -76,11 +82,14 @@ def approx_hkpr(Net, t, seed_vec=None, eps=0.01, verbose=False):
     for i in range(int(r)):
         k = np.random.poisson(lam=t)
         # k = int(min(k,K))
-        v = Net.random_walk(k, seed_vec=seed_vec, verbose=False)
+        v = Net.random_walk_seed(k, start_node, verbose=False)
         approxhkpr[Net.node_to_index[v]] += 1
     approxhkpr = approxhkpr/r
 
-    return get_node_vector_values(Net, approxhkpr)
+    if normalized:
+        return get_normalized_node_vector_values(Net, approxhkpr)
+    else:
+        return get_node_vector_values(Net, approxhkpr)
 
 
 def approx_hkpr_err(true, appr, eps):
@@ -103,25 +112,23 @@ def approx_hkpr_err(true, appr, eps):
 #####################################################################
 
 
-def local_cluster_hkpr(Net, seed_vec, target_size, target_vol, target_cheeg,
+def local_cluster_hkpr(Net, start_node, target_size, target_vol, target_cheeg,
                        approx=False, eps=0.01):
 
     t = (1./target_cheeg)*np.log( (2*np.sqrt(target_vol))/(1-eps) + 2*eps*target_size )
 
     if approx == 'matmult':
-        heat = approx_hkpr_matmult(Net, t, seed_vec=seed_vec, eps=eps, verbose=False)
+        dn_heat_val = approx_hkpr_matmult(Net, t, seed_vec=seed_vec, eps=eps, verbose=False, normalized=True)
     elif approx == 'rw':
-        heat = approx_hkpr(Net, t, seed_vec=seed_vec, eps=eps, verbose=False)
+        dn_heat_val = approx_hkpr_seed(Net, t, start_node, eps=eps, verbose=False, normalized=True)
     else:
         #Net must be a Localnetwork
-        heat = Net.exp_hkpr(t, seed_vec=seed_vec)
+        dn_heat_val = Net.exp_hkpr(t, seed_vec=seed_vec, normalized=True)
     
-    #perform a sweep
-    # dn_heat_val = {} #dic of probability per degree for each node
-    dn_heat_val = get_normalized_node_vector_values(Net, heat)
     #node ranking (this is a list of nodes!)
     rank = sorted(dn_heat_val, key=lambda k: dn_heat_val[k], reverse=True)
 
+    #perform a sweep
     sweep_set = []
     for j in range(len(rank)):
         sweep_set.append(rank[j])
@@ -134,16 +141,16 @@ def local_cluster_hkpr(Net, seed_vec, target_size, target_vol, target_cheeg,
             sweep_heat_vals = {}
             for nd in Net.graph.nodes():
                 if nd in sweep_set:
-                    sweep_heat_vals[nd] = heat[Net.node_to_index[nd]]
+                    sweep_heat_vals[nd] = dn_heat_val[nd]
                 else:
                     sweep_heat_vals[nd] = 0
-            return sweep_heat_vals, vol_ach, cheeg_ach, heat
+            return sweep_heat_vals, vol_ach, cheeg_ach
 
     print 'NO CUT FOUND'
     return None
 
 
-def local_cluster_hkpr_mincheeg(Net, seed_vec, target_size=None,
+def local_cluster_hkpr_mincheeg(Net, start_node, target_size=None,
                                 target_vol=None, target_cheeg=None,
                                 approx=False, eps=0.01):
 
@@ -156,19 +163,17 @@ def local_cluster_hkpr_mincheeg(Net, seed_vec, target_size=None,
     t = (1./target_cheeg)*np.log( (2*np.sqrt(target_vol))/(1-eps) + 2*eps*target_size )
 
     if approx == 'matmult':
-        heat = approx_hkpr_matmult(Net, t, seed_vec=seed_vec, eps=eps, verbose=False)
+        dn_heat_val = approx_hkpr_matmult(Net, t, seed_vec=seed_vec, eps=eps, verbose=False, normalized=True)
     elif approx == 'rw':
-        heat = approx_hkpr(Net, t, seed_vec=seed_vec, eps=eps, verbose=False)
+        dn_heat_val = approx_hkpr_seed(Net, t, start_node, eps=eps, verbose=False, normalized=True)
     else:
         #Net must be a Localnetwork
-        heat = Net.exp_hkpr(t, seed_vec=seed_vec)
+        dn_heat_val = Net.exp_hkpr(t, seed_vec=seed_vec, normalized=True)
     
-    #perform a sweep
-    # dn_heat_val = {} #dic of probability per degree for each node
-    dn_heat_val = get_normalized_node_vector_values(Net, heat)
     #node ranking (this is a list of nodes!)
     rank = sorted(dn_heat_val, key=lambda k: dn_heat_val[k], reverse=True)
 
+    #perform a sweep
     sweep_set = []
     min_sweep = []
     best_vol = 0.0
@@ -187,25 +192,24 @@ def local_cluster_hkpr_mincheeg(Net, seed_vec, target_size=None,
     sweep_heat_vals = {}
     for nd in Net.graph.nodes():
         if nd in min_sweep:
-            sweep_heat_vals[nd] = heat[Net.node_to_index[nd]]
+            sweep_heat_vals[nd] = dn_heat_val[nd]
         else:
             sweep_heat_vals[nd] = 0
    
-    return sweep_heat_vals, best_vol, min_cheeg, heat
+    return sweep_heat_vals, best_vol, min_cheeg
+
 
 def local_cluster_pr(Net, seed_vec, target_cheeg=None):
 
     if target_cheeg is None:
         target_cheeg = 1./3
     alpha = (target_cheeg**2)/(255*np.log(100*np.sqrt(Net.graph.number_of_edges())))
-    heat = Net.pagerank(seed_vec, alpha=alpha)
+    dn_heat_val = Net.nxpagerank(seed_vec, alpha=alpha, normalized=True)
     
-    #perform a sweep
-    # dn_heat_val = {} #dic of probability per degree for each node
-    dn_heat_val = get_normalized_node_vector_values(Net, heat)
     #node ranking (this is a list of nodes!)
     rank = sorted(dn_heat_val, key=lambda k: dn_heat_val[k], reverse=True)
 
+    #perform a sweep
     sweep_set = []
     for j in range(len(rank)):
         sweep_set.append(rank[j])
@@ -218,10 +222,10 @@ def local_cluster_pr(Net, seed_vec, target_cheeg=None):
             sweep_heat_vals = {}
             for nd in Net.graph.nodes():
                 if nd in sweep_set:
-                    sweep_heat_vals[nd] = heat[Net.node_to_index[nd]]
+                    sweep_heat_vals[nd] = dn_heat_val[nd]
                 else:
                     sweep_heat_vals[nd] = 0
-            return sweep_heat_vals, vol_ach, cheeg_ach, heat
+            return sweep_heat_vals, vol_ach, cheeg_ach
 
     print 'NO CUT FOUND'
     return None
@@ -232,14 +236,12 @@ def local_cluster_pr_mincheeg(Net, seed_vec, target_cheeg=None):
     if target_cheeg is None:
         target_cheeg = 1./3
     alpha = (target_cheeg**2)/(255*np.log(100*np.sqrt(Net.graph.number_of_edges())))
-    heat = Net.pagerank(seed_vec, alpha=alpha)
+    dn_heat_val = Net.pagerank(seed_vec, alpha=alpha, normalized=True)
     
-    #perform a sweep
-    # dn_heat_val = {} #dic of probability per degree for each node
-    dn_heat_val = get_normalized_node_vector_values(Net, heat)
     #node ranking (this is a list of nodes!)
     rank = sorted(dn_heat_val, key=lambda k: dn_heat_val[k], reverse=True)
 
+    #perform a sweep
     sweep_set = []
     min_sweep = []
     best_vol = 0.0
@@ -258,8 +260,8 @@ def local_cluster_pr_mincheeg(Net, seed_vec, target_cheeg=None):
     sweep_heat_vals = {}
     for nd in Net.graph.nodes():
         if nd in min_sweep:
-            sweep_heat_vals[nd] = heat[Net.node_to_index[nd]]
+            sweep_heat_vals[nd] = dn_heat_val[nd]
         else:
             sweep_heat_vals[nd] = 0
    
-    return sweep_heat_vals, best_vol, min_cheeg, heat
+    return sweep_heat_vals, best_vol, min_cheeg

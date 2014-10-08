@@ -92,6 +92,26 @@ class Network(object):
         return cluster
 
 
+    def random_walk_seed(self, k, start_node, verbose=False):
+        '''
+        Outputs the last node visited in a k-step random walk on the graph.
+        If start_node given, walk starts from start_node.
+        If seed_vec given, walk starts from a node drawn from seed_vec.
+        If neither are given, walk starts from a node drawn from
+        p(v) = d(v)/vol(G).
+        '''
+        cur_node = start_node
+        if verbose:
+            print 'start:', cur_node
+        for steps in range(k):
+            next_node = np.random.choice(self.graph.neighbors(cur_node))
+            cur_node = next_node
+            if verbose:
+                print cur_node
+        if verbose:
+            print 'stop:', cur_node
+        return cur_node
+
     def random_walk(self, k, seed_vec=None, verbose=False):
         '''
         Outputs the last node visited in a k-step random walk on the graph.
@@ -170,14 +190,18 @@ class Localnetwork(Network):
         return scipy.linalg.expm(-t*laplace) 
 
 
-    def exp_hkpr(self, t, seed_vec):
+    def exp_hkpr(self, t, seed_vec, normalized=False):
         '''
         Exact computation of hkpr(t,f) = f^T H_t.
         '''
         f = seed_vec
         heat_ker = self.heat_ker(t)
         hkpr = np.dot(np.transpose(f), heat_ker)
-        return get_node_vector_values(self, hkpr)
+
+        if normalized:
+            return get_normalized_node_vector_values(self, hkpr)
+        else:
+            return get_node_vector_values(self, hkpr)
 
 
     def random_walk(self, k, seed_vec=None, verbose=False):
@@ -210,22 +234,33 @@ class Localnetwork(Network):
         return cur_node
 
 
-    def pagerank(self, seed_vec, alpha=0.85):
+    #TODO this needs to be checked
+    def pagerank(self, seed_vec, alpha=0.85, normalized=False):
         I = np.identity(self.size)
         Z = 0.5*(I + self.walk_mat)
         lhs = I - (1.0-alpha)*Z
         rhs = alpha*seed_vec
 
         pr = np.linalg.solve(lhs, rhs)
-        return get_node_vector_values(self, pr)
 
-    def nxpagerank(self, seed_vec, alpha=0.85):
+        if normalized:
+            return get_normalized_node_vector_values(self, pr)
+        else:
+            return get_node_vector_values(self, pr)
+
+    def nxpagerank(self, seed_vec, alpha=0.85, normalized=False):
         #build personalization dict from seed_vec
         pref = {}
         for nd in self.graph.nodes():
             pref[nd] = seed_vec[self.node_to_index[nd]]
 
-        return nx.pagerank(self.graph, alpha=alpha, personalization=pref)
+        pr = nx.pagerank(self.graph, alpha=alpha, personalization=pref)
+
+        if normalized:
+            prvec = np.array(pr.values())
+            return get_normalized_node_vector_values(self, prvec)
+        else:
+            return pr
 
 
 def indicator_vector(Net, node=None):
