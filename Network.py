@@ -8,7 +8,7 @@ execfile('/home/olivia/UCSD/projects/datasets/datasets.py')
 
 class Network(object):
     """
-    Network object initialized from a gml file or networkx graph.
+    Network object initialized from a gml file, edgelist, or networkx graph.
     Base object for heat kernel pagerank computations.
     """
 
@@ -34,6 +34,10 @@ class Network(object):
 
 
     def volume(self, subset=None):
+        """
+        Compute the volume of the entire graph if no subset is provided,
+        or of the subset of nodes.
+        """
         if subset is None:
             vol = 2*self.graph.number_of_edges()
         else:
@@ -44,9 +48,9 @@ class Network(object):
 
 
     def edge_boundary(self, subset):
-        '''
-        Outputs the size of the edge boundary of the subset in the network.
-        '''
+        """
+        Compute the size of the edge boundary of the subset in the network.
+        """
         edge_bound = 0
         for nd in subset:
             for v in self.graph.neighbors(nd):
@@ -56,11 +60,27 @@ class Network(object):
 
 
     def cheeger_ratio(self, subset):
+        """
+        Compute the Cheeger ratio of the subset in the network.
+        Assume the volume of the subset is < vol(network)/2.
+        """
         cheeg = float(self.edge_boundary(subset))/self.volume(subset=subset)
         return cheeg
-   
+
 
     def random_hop_cluster_hops(self, hops, start_node=None):
+        """
+        Compute a random cluster in the network based on hops.
+
+        Parameters:
+            hops, number of hops from the starting node used to compute the
+                    random cluster
+            start_node, the seed of the cluster.  If none provided, this is
+                    chosen uniformly at random.
+
+        Output:
+            a list of nodes
+        """
         if start_node is None:
             start_node = np.random.choice(self.graph.nodes())
 
@@ -72,8 +92,20 @@ class Network(object):
             cluster.extend(add_cluster)
 
         return cluster
-    
+
+
     def random_hop_cluster_size(self, size, start_node=None):
+        """
+        Compute a random cluster of specified size in the network based on hops.
+
+        Parameters:
+            size, the desired size of the cluster
+            start_node, the seed of the cluster.  If none provided, this is
+                    chosen uniformly at random.
+
+        Output:
+            a list of nodes
+        """
         if size > self.size:
             print 'cluster size exceeds graph size, returning full graph set'
             return self.graph.nodes()
@@ -93,13 +125,10 @@ class Network(object):
 
 
     def random_walk_seed(self, k, start_node, verbose=False):
-        '''
-        Outputs the last node visited in a k-step random walk on the graph.
-        If start_node given, walk starts from start_node.
-        If seed_vec given, walk starts from a node drawn from seed_vec.
-        If neither are given, walk starts from a node drawn from
-        p(v) = d(v)/vol(G).
-        '''
+        """
+        Outputs the last node visited in a k-step random walk on the graph
+        starting from start_node.
+        """
         cur_node = start_node
         if verbose:
             print 'start:', cur_node
@@ -113,13 +142,10 @@ class Network(object):
         return cur_node
 
     def random_walk(self, k, seed_vec=None, verbose=False):
-        '''
-        Outputs the last node visited in a k-step random walk on the graph.
-        If start_node given, walk starts from start_node.
-        If seed_vec given, walk starts from a node drawn from seed_vec.
-        If neither are given, walk starts from a node drawn from
-        p(v) = d(v)/vol(G).
-        '''
+        """
+        Outputs the last node visited in a k-step random walk on the graph
+        using seed_vec as a starting distribution.
+        """
         if seed_vec is not None:
             cur_node = draw_node_from_dist(self, seed_vec)
         else:
@@ -141,6 +167,10 @@ class Network(object):
 
 
 class Localnetwork(Network):
+    """
+    A subclass that assumes a smaller subset of nodes and computations
+    restricted to the induced subgraph.
+    """
 
     def __init__(self, network, subset):
         netxsg = network.graph.subgraph(subset)
@@ -160,6 +190,9 @@ class Localnetwork(Network):
 
 
     def __init__(self, gml_file=None, netx=None, edge_list=None):
+        """
+        If full network is small enough, can initialize it as a Localnetwork.
+        """
         Network.__init__(self, gml_file=gml_file, netx=netx, edge_list=edge_list)
         self.adj_mat = nx.to_numpy_matrix(self.graph, nodelist=sorted(self.graph.nodes()))
         d = np.sum(self.adj_mat, axis=1)
@@ -180,20 +213,30 @@ class Localnetwork(Network):
 
 
     def heat_ker(self, t):
-        '''
+        """
         Exact computation of H_t = exp{-t(I-P)} with the matrix exponential.
-        '''
+        Returns a numpy matrix.
+        """
         # \Delta = I - P
         laplace = np.eye(self.size) - self.walk_mat
 
         # heat kernel
-        return scipy.linalg.expm(-t*laplace) 
+        return scipy.linalg.expm(-t*laplace)
 
 
     def exp_hkpr(self, t, seed_vec, normalized=False):
-        '''
+        """
         Exact computation of hkpr(t,f) = f^T H_t.
-        '''
+
+        Parameters:
+            t, temperature parameters
+            seed_vec, the preference vector
+            normalized, if set to true, output vector values normalized by
+                node degree
+
+        Output:
+            a dictionary of node, vector values
+        """
         f = seed_vec
         heat_ker = self.heat_ker(t)
         hkpr = np.dot(np.transpose(f), heat_ker)
@@ -204,51 +247,63 @@ class Localnetwork(Network):
             return get_node_vector_values(self, hkpr)
 
 
-    def random_walk(self, k, seed_vec=None, verbose=False):
-        '''
-        Outputs the last node visited in a k-step random walk on the graph.
-        If start_node given, walk starts from start_node.
-        If seed_vec given, walk starts from a node drawn from seed_vec.
-        If neither are given, walk starts from a node drawn from
-        p(v) = d(v)/vol(G).
-        '''
-        if seed_vec is not None:
-            cur_node = draw_node_from_dist(self, seed_vec)
-            # cur_node = np.random.choice(self.graph.nodes(), p=seed_vec)
-        else:
-            # choose start node according to dv/vol(G)
-            total = sum(self.deg_vec)
-            p = self.deg_vec/total
-            cur_node = np.random.choice(self.graph.nodes(), p=p)
-        if verbose:
-            print 'start:', cur_node
-        for steps in range(k):
-            p = np.asarray(self.walk_mat)[self.node_to_index[cur_node]]
-            next_node = draw_node_from_dist(self, p)
-            # next_node = np.random.choice(self.graph.nodes(), p=p)
-            cur_node = next_node
-            if verbose:
-                print cur_node
-        if verbose:
-            print 'stop:', cur_node
-        return cur_node
+    # def random_walk(self, k, seed_vec=None, verbose=False):
+    #     """
+    #     Outputs the last node visited in a k-step random walk on the graph
+    #     using seed_vec as a starting distribution.
+
+    #     transition probability matrix-based.
+    #     """
+    #     if seed_vec is not None:
+    #         cur_node = draw_node_from_dist(self, seed_vec)
+    #         # cur_node = np.random.choice(self.graph.nodes(), p=seed_vec)
+    #     else:
+    #         # choose start node according to dv/vol(G)
+    #         total = sum(self.deg_vec)
+    #         p = self.deg_vec/total
+    #         cur_node = np.random.choice(self.graph.nodes(), p=p)
+    #     if verbose:
+    #         print 'start:', cur_node
+    #     for steps in range(k):
+    #         p = np.asarray(self.walk_mat)[self.node_to_index[cur_node]]
+    #         next_node = draw_node_from_dist(self, p)
+    #         # next_node = np.random.choice(self.graph.nodes(), p=p)
+    #         cur_node = next_node
+    #         if verbose:
+    #             print cur_node
+    #     if verbose:
+    #         print 'stop:', cur_node
+    #     return cur_node
 
 
-    #TODO this needs to be checked
-    def pagerank(self, seed_vec, alpha=0.85, normalized=False):
-        I = np.identity(self.size)
-        Z = 0.5*(I + self.walk_mat)
-        lhs = I - (1.0-alpha)*Z
-        rhs = alpha*seed_vec
+    # # TODO this needs to be checked
+    # def pagerank(self, seed_vec, alpha=0.85, normalized=False):
+    #     I = np.identity(self.size)
+    #     Z = 0.5*(I + self.walk_mat)
+    #     lhs = I - (1.0-alpha)*Z
+    #     rhs = alpha*seed_vec
 
-        pr = np.linalg.solve(lhs, rhs)
+    #     pr = np.linalg.solve(lhs, rhs)
 
-        if normalized:
-            return get_normalized_node_vector_values(self, pr)
-        else:
-            return get_node_vector_values(self, pr)
+    #     if normalized:
+    #         return get_normalized_node_vector_values(self, pr)
+    #     else:
+    #         return get_node_vector_values(self, pr)
 
     def nxpagerank(self, seed_vec, alpha=0.85, normalized=False):
+        """
+        Use networkx provided function for computing the pagerank of the
+        network.
+
+        Parameters:
+            seed_vec, preference vector
+            alpha, reset probability, default to 0.85
+            normalized, if set to true, output vector values normalized by
+                node degree
+
+        Output:
+            a dictionary of node, vector values
+        """
         #build personalization dict from seed_vec
         pref = {}
         for nd in self.graph.nodes():
@@ -264,6 +319,10 @@ class Localnetwork(Network):
 
 
 def indicator_vector(Net, node=None):
+    """
+    Compute the indicator vector for the given network and node.
+    Output as a numpy array.
+    """
     if node is None:
         node = np.random.choice(Net.graph.nodes())
     chi = np.zeros(Net.size)
@@ -272,18 +331,29 @@ def indicator_vector(Net, node=None):
 
 
 def draw_node_from_dist(Net, dist_vec):
+    """
+    Draw a random node from the network based on probability distribution
+    given by dist_vec.
+    """
     indx = np.random.choice(Net.index_to_node.keys(), p=dist_vec)
     node = Net.index_to_node[indx]
     return node
 
 
 def get_node_vector_values(Net, vec):
+    """
+    Return a dictionary of node, vector values for list/vector vec.
+    """
     vals = {}
     for i in range(vec.size):
         vals[Net.index_to_node[i]] = vec[i]
     return vals
 
 def get_normalized_node_vector_values(Net, vec):
+    """
+    Return a dictionary of node, vector values for list/vector vec
+    and normalize each value by node degree.
+    """
     vals = {}
     for i in range(vec.size):
         node = Net.index_to_node[i]
@@ -327,7 +397,7 @@ def draw_vec(self, dic, file_name, label_names=True):
     norm_d = {}
     for nd in dic:
         norm_d[nd] = (dic[nd]-min_v)/(max_v-min_v)
-    
+
     maxval = max(norm_d.values())
     for n in self.graph.nodes():
         node = pydot.Node(str(n))
