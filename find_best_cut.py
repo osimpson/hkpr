@@ -22,7 +22,7 @@ parser.add_option("-p", "--pngout", dest="pngout", action="store", default=None)
 
 (options, args) = parser.parse_args()
 
-if options.approx if False:
+if options.approx is False:
     if options.fformat == 'gml':
         Net = Localnetwork(gml_file=GRAPH_DATASETS[options.dataset])
     elif options.fformat == 'nx':
@@ -50,10 +50,11 @@ best_vol = 0.0
 for i in range(options.r):
     start_node = options.start_node
     if start_node is None:
-        # choose start node according to dv/vol(G)
-        total = Net.volume()
-        p = Net.deg_vec/total
-        start_node = np.random.choice(Net.graph.nodes(), p=p)
+        start_node = np.random.choice(Net.graph.nodes())
+        # # choose start node according to dv/vol(G)
+        # total = Net.volume()
+        # p = Net.deg_vec/total
+        # start_node = np.random.choice(Net.graph.nodes(), p=p)
     print 'start node: ', start_node
     # try:
     #     seed = indicator_vector(Net, start_node)
