@@ -186,7 +186,7 @@ class Localnetwork(Network):
         # for i in range(self.size):
         #     self.deg_vec[i] = d[i,0]
         #     self.deg_mat[i,i] = d[i,0]
-        self.walk_mat = np.linalg.inv(self.deg_mat)*self.adj_mat
+        self.walk_mat = np.dot(np.linalg.inv(self.deg_mat), self.adj_mat)
 
 
     def __init__(self, gml_file=None, netx=None, edge_list=None):
@@ -205,7 +205,7 @@ class Localnetwork(Network):
         # for i in range(self.size):
         #     self.deg_vec[i] = d[i,0]
         #     self.deg_mat[i,i] = d[i,0]
-        self.walk_mat = np.linalg.inv(self.deg_mat)*self.adj_mat
+        self.walk_mat = np.dot(np.linalg.inv(self.deg_mat), self.adj_mat)
 
 
     def laplacian_combo(self):
@@ -280,7 +280,8 @@ class Localnetwork(Network):
     # def pagerank(self, seed_vec, alpha=0.85, normalized=False):
     #     I = np.identity(self.size)
     #     Z = 0.5*(I + self.walk_mat)
-    #     lhs = I - (1.0-alpha)*Z
+    #     # lhs = I - (1.0-alpha)*Z
+    #     lhs = I - (1.0-alpha)*self.walk_mat
     #     rhs = alpha*seed_vec
 
     #     pr = np.linalg.solve(lhs, rhs)
