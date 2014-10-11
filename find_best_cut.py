@@ -61,7 +61,6 @@ for i in range(options.r):
     # except KeyError:
     #     seed = indicator_vector(Net, int(start_node))
 
-    print 'performing a sweep...'
     heat_vals, vol, cheeg = lc.local_cluster_hkpr_mincheeg(Net, start_node, approx=options.approx)
 
     if cheeg < best_cheeg:

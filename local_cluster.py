@@ -86,8 +86,8 @@ def approx_hkpr_seed(Net, t, start_node, eps=0.01, verbose=False, normalized=Fal
     n = Net.size
     approxhkpr = np.zeros(n)
 
-    r = (16.0/eps**3)*np.log(n)
-    # r = (16.0/eps**2)*np.log(n)
+    # r = (16.0/eps**3)*np.log(n)
+    r = (16.0/eps**2)*np.log(n)
     # r = (16.0/eps)*np.log(n)
 
     # K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
@@ -228,6 +228,7 @@ def local_cluster_hkpr_mincheeg(Net, start_node, target_size=None,
         target_cheeg = 1./3
     t = (1./target_cheeg)*np.log( (2*np.sqrt(target_vol))/(1-eps) + 2*eps*target_size )
 
+    print 'computing the heat kernel...'
     if approx == 'matmult':
         dn_heat_val = approx_hkpr_matmult(Net, t, seed_vec=seed_vec, eps=eps, verbose=False, normalized=True)
     elif approx == 'rw':
@@ -236,6 +237,7 @@ def local_cluster_hkpr_mincheeg(Net, start_node, target_size=None,
         #Net must be a Localnetwork
         dn_heat_val = Net.exp_hkpr(t, seed_vec=seed_vec, normalized=True)
 
+    print 'performing a sweep...'
     #node ranking (this is a list of nodes!)
     rank = sorted(dn_heat_val, key=lambda k: dn_heat_val[k], reverse=True)
 
