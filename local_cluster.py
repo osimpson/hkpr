@@ -331,7 +331,7 @@ def local_cluster_pr_mincheeg(Net, start_node, target_cheeg=None):
     if target_cheeg is None:
         target_cheeg = 1./3
     alpha = (target_cheeg**2)/(255*np.log(100*np.sqrt(Net.graph.number_of_edges())))
-    dn_heat_val = Net.pagerank(seed_vec, alpha=alpha, normalized=True)
+    dn_heat_val = Net.nxpagerank(seed_vec, alpha=alpha, normalized=True)
 
     #node ranking (this is a list of nodes!)
     rank = sorted(dn_heat_val, key=lambda k: dn_heat_val[k], reverse=True)
