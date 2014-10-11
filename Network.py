@@ -165,6 +165,33 @@ class Network(object):
         return cur_node
 
 
+    def nxpagerank(self, seed_vec, alpha=0.85, normalized=False):
+        """
+        Use networkx provided function for computing the pagerank of the
+        network.
+
+        Parameters:
+            seed_vec, preference vector
+            alpha, reset probability, default to 0.85
+            normalized, if set to true, output vector values normalized by
+                node degree
+
+        Output:
+            a dictionary of node, vector values
+        """
+        #build personalization dict from seed_vec
+        pref = {}
+        for nd in self.graph.nodes():
+            pref[nd] = seed_vec[self.node_to_index[nd]]
+
+        pr = nx.pagerank(self.graph, alpha=alpha, personalization=pref)
+
+        if normalized:
+            prvec = np.array(pr.values())
+            return get_normalized_node_vector_values(self, prvec)
+        else:
+            return pr
+
 
 class Localnetwork(Network):
     """
@@ -290,33 +317,6 @@ class Localnetwork(Network):
     #         return get_normalized_node_vector_values(self, pr)
     #     else:
     #         return get_node_vector_values(self, pr)
-
-    def nxpagerank(self, seed_vec, alpha=0.85, normalized=False):
-        """
-        Use networkx provided function for computing the pagerank of the
-        network.
-
-        Parameters:
-            seed_vec, preference vector
-            alpha, reset probability, default to 0.85
-            normalized, if set to true, output vector values normalized by
-                node degree
-
-        Output:
-            a dictionary of node, vector values
-        """
-        #build personalization dict from seed_vec
-        pref = {}
-        for nd in self.graph.nodes():
-            pref[nd] = seed_vec[self.node_to_index[nd]]
-
-        pr = nx.pagerank(self.graph, alpha=alpha, personalization=pref)
-
-        if normalized:
-            prvec = np.array(pr.values())
-            return get_normalized_node_vector_values(self, prvec)
-        else:
-            return pr
 
 
 def indicator_vector(Net, node=None):
