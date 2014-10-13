@@ -161,6 +161,7 @@ def local_cluster_hkpr(Net, start_node, target_size, target_vol, target_cheeg,
     """
     t = (1./target_cheeg)*np.log( (2*np.sqrt(target_vol))/(1-eps) + 2*eps*target_size )
 
+    print 'computing the heat kernel...'
     if approx == 'matmult':
         dn_heat_val = approx_hkpr_matmult(Net, t, seed_vec=seed_vec, eps=eps, verbose=False, normalized=True)
     elif approx == 'rw':
@@ -174,13 +175,24 @@ def local_cluster_hkpr(Net, start_node, target_size, target_vol, target_cheeg,
 
     #perform a sweep
     sweep_set = []
+    vol_ach = 0.0
+    edge_bound_ach = 0.0
+    cheeg_ach = 0.0
     for j in range(len(rank)):
         sweep_set.append(rank[j])
-        vol_ach = Net.volume(subset=sweep_set) #volume of sweep set
+        # vol_ach = Net.volume(subset=sweep_set) #volume of sweep set
+	vol_ach += Net.graph.degree(rank[j])
         if vol_ach > 2*target_vol:
             print 'NO CUT FOUND'
             return
-        cheeg_ach = Net.cheeger_ratio(sweep_set) #cheeger ratio of sweep set
+        # cheeg_ach = Net.cheeger_ratio(sweep_set) #cheeger ratio of sweep set
+	#calculate edge boundary
+        for nb in Net.graph.neighbors(rank[j]):
+	    if nb in sweep_set:
+		edge_bound_ach = edge_bound_ach - 1
+	    elif nb not in sweep_set:
+                edge_bound_ach += 1
+        cheeg_ach = float(edge_bound_ach)/vol_ach
         if vol_ach >= target_vol/2 and cheeg_ach <= np.sqrt(8*target_cheeg):
             sweep_heat_vals = {}
             for nd in Net.graph.nodes():
@@ -243,15 +255,26 @@ def local_cluster_hkpr_mincheeg(Net, start_node, target_size=None,
 
     #perform a sweep
     sweep_set = []
+    vol_ach = 0.0
+    edge_bound_ach = 0.0
+    cheeg_ach = 0.0
     min_sweep = []
     best_vol = 0.0
     min_cheeg = 1.0
     for j in range(len(rank)):
         sweep_set.append(rank[j])
-        vol_ach = Net.volume(subset=sweep_set) #volume of sweep set
+        # vol_ach = Net.volume(subset=sweep_set) #volume of sweep set
+	vol_ach += Net.graph.degree(rank[j])
         if vol_ach > 2*target_vol:
            break
-        cheeg_ach = Net.cheeger_ratio(sweep_set) #cheeger ratio of sweep set
+        # cheeg_ach = Net.cheeger_ratio(sweep_set) #cheeger ratio of sweep set
+	#calculate edge boundary
+        for nb in Net.graph.neighbors(rank[j]):
+	    if nb in sweep_set:
+		edge_bound_ach = edge_bound_ach - 1
+	    elif nb not in sweep_set:
+                edge_bound_ach += 1
+        cheeg_ach = float(edge_bound_ach)/vol_ach
         if cheeg_ach < min_cheeg:
             min_sweep = sweep_set
             best_vol = vol_ach
@@ -285,20 +308,33 @@ def local_cluster_pr(Net, start_node, target_cheeg=None):
     if target_cheeg is None:
         target_cheeg = 1./3
     alpha = (target_cheeg**2)/(255*np.log(100*np.sqrt(Net.graph.number_of_edges())))
+    print 'computing the PageRank...'
     dn_heat_val = Net.nxpagerank(seed_vec, alpha=alpha, normalized=True)
 
     #node ranking (this is a list of nodes!)
     rank = sorted(dn_heat_val, key=lambda k: dn_heat_val[k], reverse=True)
 
+    print 'performing a sweep'
     #perform a sweep
     sweep_set = []
+    vol_ach = 0.0
+    edge_bound_ach = 0.0
+    cheeg_ach = 0.0
     for j in range(len(rank)):
         sweep_set.append(rank[j])
-        vol_ach = Net.volume(subset=sweep_set) #volume of sweep set
+        # vol_ach = Net.volume(subset=sweep_set) #volume of sweep set
+	vol_ach += Net.graph.degree(rank[j])
         if vol_ach > (2./3)*Net.volume():
             print 'NO CUT FOUND'
             return
-        cheeg_ach = Net.cheeger_ratio(sweep_set) #cheeger ratio of sweep set
+        # cheeg_ach = Net.cheeger_ratio(sweep_set) #cheeger ratio of sweep set
+	#calculate edge boundary
+        for nb in Net.graph.neighbors(rank[j]):
+	    if nb in sweep_set:
+		edge_bound_ach = edge_bound_ach - 1
+	    elif nb not in sweep_set:
+                edge_bound_ach += 1
+        cheeg_ach = float(edge_bound_ach)/vol_ach
         if cheeg_ach <= target_cheeg:
             sweep_heat_vals = {}
             for nd in Net.graph.nodes():
@@ -331,22 +367,35 @@ def local_cluster_pr_mincheeg(Net, start_node, target_cheeg=None):
     if target_cheeg is None:
         target_cheeg = 1./3
     alpha = (target_cheeg**2)/(255*np.log(100*np.sqrt(Net.graph.number_of_edges())))
+    print 'computing the PageRank...'
     dn_heat_val = Net.nxpagerank(seed_vec, alpha=alpha, normalized=True)
 
     #node ranking (this is a list of nodes!)
     rank = sorted(dn_heat_val, key=lambda k: dn_heat_val[k], reverse=True)
 
+    print 'performing a sweep...'
     #perform a sweep
     sweep_set = []
+    vol_ach = 0.0
+    edge_bound_ach = 0.0
+    cheeg_ach = 0.0
     min_sweep = []
     best_vol = 0.0
     min_cheeg = 1.0
     for j in range(len(rank)):
         sweep_set.append(rank[j])
-        vol_ach = Net.volume(subset=sweep_set) #volume of sweep set
+        # vol_ach = Net.volume(subset=sweep_set) #volume of sweep set
+	vol_ach += Net.graph.degree(rank[j])
         if vol_ach > (2./3)*Net.volume():
            break
-        cheeg_ach = Net.cheeger_ratio(sweep_set) #cheeger ratio of sweep set
+        # cheeg_ach = Net.cheeger_ratio(sweep_set) #cheeger ratio of sweep set
+	#calculate edge boundary
+        for nb in Net.graph.neighbors(rank[j]):
+	    if nb in sweep_set:
+		edge_bound_ach = edge_bound_ach - 1
+	    elif nb not in sweep_set:
+                edge_bound_ach += 1
+        cheeg_ach = float(edge_bound_ach)/vol_ach
         if cheeg_ach < min_cheeg:
             min_sweep = sweep_set
             best_vol = vol_ach
