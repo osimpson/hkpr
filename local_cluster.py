@@ -375,14 +375,14 @@ def local_cluster_pr_mincheeg(Net, start_node, target_cheeg=None):
 
     print 'performing a sweep...'
     #perform a sweep
-    sweep_set = []
-    vol_ach = 0.0
-    edge_bound_ach = 0.0
-    cheeg_ach = 0.0
+    sweep_set = rank[:100]
+    vol_ach = Net.volume(subset=sweep_set)
+    edge_bound_ach = Net.edge_boundary(sweep_set)
+    cheeg_ach = float(edge_bound_ach)/vol_ach
     min_sweep = []
     best_vol = 0.0
     min_cheeg = 1.0
-    for j in range(len(rank)):
+    for j in range(100,len(rank)):
         sweep_set.append(rank[j])
         # vol_ach = Net.volume(subset=sweep_set) #volume of sweep set
 	vol_ach += Net.graph.degree(rank[j])
