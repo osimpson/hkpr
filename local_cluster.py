@@ -386,7 +386,7 @@ def local_cluster_pr_mincheeg(Net, start_node, target_cheeg=None):
         sweep_set.append(rank[j])
         # vol_ach = Net.volume(subset=sweep_set) #volume of sweep set
 	vol_ach += Net.graph.degree(rank[j])
-        if vol_ach > (2./3)*Net.volume():
+        if vol_ach > 0.5*Net.volume():
            break
         # cheeg_ach = Net.cheeger_ratio(sweep_set) #cheeger ratio of sweep set
 	#calculate edge boundary
