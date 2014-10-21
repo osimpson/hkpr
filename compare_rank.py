@@ -1,6 +1,32 @@
 execfile('Network.py')
 import local_cluster as lc
 
+f = open('power_pagerank_best_cut.txt', 'w')
+
+power = Network(GRAPH_DATASETS['power'])
+prval, prvol, prcheeg = lc.local_cluster_pr_mincheeg(power, 1189)
+
+f.write('power pagerank\n')
+f.write('start node: 1189\n')
+f.write('volume: '+str(prvol)+'\n')
+f.write('ratio: '+str(prcheeg)+'\n')
+
+f.close()
+
+
+f = open('facebook_pagerank_best_cut.txt', 'w')
+
+facebook = Network(edge_list=GRAPH_DATASETS['facebook'])
+prval, prvol, prcheeg = lc.local_cluster_pr_mincheeg(facebook, '2212')
+
+f.write('facebook pagerank\n')
+f.write('start node: 2212\n')
+f.write('volume: '+str(prvol)+'\n')
+f.write('ratio: '+str(prcheeg)+'\n')
+
+f.close()
+
+
 f = open('gowalla_pagerank_best_cut.txt', 'w')
 
 gowalla = Network(edge_list=GRAPH_DATASETS['gowalla'])
