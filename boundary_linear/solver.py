@@ -200,8 +200,22 @@ def greens_solver(Net, boundary_vec, subset, eps=0.01):
 
 
 def restricted_solution(Net, boundary_vec, subset):
+    """
+    Computes the restricted solution as the matrix vector product:
+        xS = (LS)^{-1} (dot) b1
+    as defined in Theorem 1
+
+    Parameters:
+        Net, the Network Network (graph)
+        boundary_vec, a vector over the nodes of the graph with non-empty support
+        subset, a list of nodes in V\supp(boundary_vec)
+
+    Output:
+        the restricted solution vector xS over the nodes of the subset
+    """
     LS = Net.restricted_mat(Net.normalized_laplacian(), subset, subset)
     LS_inv = np.linalg.inv(LS)
     b1 = np.transpose(compute_b1(Net, boundary_vec, subset))
 
     return np.dot(LS_inv, b1)
+
