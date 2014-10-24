@@ -1,6 +1,6 @@
 import networkx as nx
 import numpy as np
-import pydot
+from scipy.integrate import quad
 from Network import *
 
 np.set_printoptions(precision=20)
@@ -202,7 +202,7 @@ def greens_solver(Net, boundary_vec, subset, eps=0.01):
 def restricted_solution(Net, boundary_vec, subset):
     """
     Computes the restricted solution as the matrix vector product:
-        xS = (LS)^{-1} (dot) b1
+        xS = (\LS)^{-1} (dot) b1
     as defined in Theorem 1
 
     Parameters:
@@ -219,3 +219,49 @@ def restricted_solution(Net, boundary_vec, subset):
 
     return np.dot(LS_inv, b1)
 
+
+def restricted_solution_int(Net, boundary_vec, subset):
+    """
+    Computes the restricted solution as the improper integral:
+        xS = int_0^{\inf} \H_t (dot) b1 dt
+    as defined in Corollary 1
+
+    \H_t = exp{-t*(\L)_S}
+
+    Parameters:
+        Net, the Network Network (graph)
+        boundary_vec, a vector over the nodes of the graph with non-empty support
+        subset, a list of nodes in V\supp(boundary_vec)
+
+    Output:
+        the restricted solution vector xS over the nodes of the subset
+    """
+    pass
+
+
+def restricted_solution_riemann(Net, boundary_vec, subset, eps=0.01):
+    """
+    Computes the restricted solution as the Riemann sum:
+        xS = sum_{j=1}^N \H_{jT/N} T/N (dot) b1
+    as defined in Lemma 2
+
+    \H_t = exp{-t*(\L)_S}
+
+    Parameters:
+        Net, the Network Network (graph)
+        boundary_vec, a vector over the nodes of the graph with non-empty support
+        subset, a list of nodes in V\supp(boundary_vec)
+
+    Output:
+        the restricted solution vector xS over the nodes of the subset
+    """
+    s = len(subset)
+    T = (s**3)*(np.log((s**3)*(1./eps)))
+    N = T/eps
+
+    xS = np.zeros((s,1))
+    b1 = np.transpose(compute_b1(Net, boundary_vec, subset))
+    for j in range(1, int(N)+1):
+        xS += eps*np.dot(Net.heat_kernel_symm(subset, j*eps), b1)
+
+    return xS
