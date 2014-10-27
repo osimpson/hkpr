@@ -64,17 +64,18 @@ def approx_hkpr_matmult(Net, t, seed_vec, num_trials=1000, verbose=False):
 #         return get_node_vector_values(Net, approxhkpr)
 
 
-def approx_hkpr(Net, t, seed_vec, eps=0.01, verbose=False):
+def approx_hkpr(Net, subset, t, f, eps=0.01, verbose=False):
     """
-    An implementation of the ApproxHKPRseed algorithm using random walks.
+    An implementation of the ApproxHKPR algorithm using random walks.
 
     Parameters:
+        subset, the subset over which we compute
         t, temperature parameter
-        start_node, the seed node
+        f, the seed vector
         eps, desired error parameter
 
     Output:
-        a dictionary of node, vector values
+        Dirichlet heat kernel pagerank f_S H_t
     """
     #initialize 0-vector of size n
     n = Net.size
@@ -84,10 +85,10 @@ def approx_hkpr(Net, t, seed_vec, eps=0.01, verbose=False):
     f_plus = np.zeros(n)
     f_minus = np.zeros(n)
     for i in range(n):
-        if seed_vec[i] > 0.0:
-            f_plus[i] = seed_vec[i]
-        elif seed_vec[i] < 0.0:
-            f_minus[i] = -seed_vec[i]
+        if f[i] > 0.0:
+            f_plus[i] = f[i]
+        elif f[i] < 0.0:
+            f_minus[i] = -f[i]
     if np.linalg.norm(f_plus, ord=1) > 0:
         f_p = f_plus/np.linalg.norm(f_plus, ord=1)
     else:
@@ -102,7 +103,7 @@ def approx_hkpr(Net, t, seed_vec, eps=0.01, verbose=False):
     # r = (16.0/eps)*np.log(n)
 
     K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
-    # K = t
+    # K = 2*t
 
     if verbose:
         print 'r: ', r
@@ -261,11 +262,11 @@ def restricted_solution_riemann_sample(Net, boundary_vec, subset, eps=0.01):
     """
     s = len(subset)
     T = (s**3)*(np.log((s**3)*(1./eps)))
-    print 'T', T
+    print '\tT', T
     N = T/eps
-    print 'N', N
+    print '\tN', N
     r = eps**(-2)*(np.log(s) + np.log(1/eps))
-    print 'r', r
+    print '\tr', r
 
     b1 = compute_b1(Net, boundary_vec, subset)
     xS = np.zeros((s,1))
@@ -307,11 +308,11 @@ def greens_solver_exphkpr(Net, boundary_vec, subset, eps=0.01):
     """
     s = len(subset)
     T = (s**3)*(np.log((s**3)*(1./eps)))
-    print 'T', T
+    print '\tT', T
     N = T/eps
-    print 'N', N
+    print '\tN', N
     r = eps**(-2)*(np.log(s) + np.log(1/eps))
-    print 'r', r
+    print '\tr', r
 
     b2 = compute_b2(Net, boundary_vec, subset)
     xS = np.zeros((1,s))
@@ -333,13 +334,14 @@ def err_RSRS_exphkpr(Net, boundary_vec, subset, eps=0.01):
     xS_sample = greens_solver_exphkpr(Net, boundary_vec, subset, eps=eps)
     b1 = compute_b1(Net, boundary_vec, subset)
     allowable_err = eps*( np.linalg.norm(b1) + np.linalg.norm(xS_true) + np.linalg.norm(xS_rie) )
-    return max(0, np.linalg.norm(xS_true - xS_sample) - allowable_err)
+    return max(0, np.linalg.norm(xS_true-xS_sample) - allowable_err)
 
 
 def err_test(Net, boundary_vec, subset, eps=0.01):
     xS_true = restricted_solution(Net, boundary_vec, subset)
     xS_rie = restricted_solution_riemann(Net, boundary_vec, subset, eps=eps)
-    xS_sample = greens_solver_exphkpr(Net, boundary_vec, subset, eps=eps)
+    xS_rieSample = restricted_solution_riemann_sample(Net, boundary_vec, subset, eps=eps)
+    xS_hkprSample = greens_solver_exphkpr(Net, boundary_vec, subset, eps=eps)
     b1 = compute_b1(Net, boundary_vec, subset)
 
     print 'error in reimann method:'
@@ -348,11 +350,11 @@ def err_test(Net, boundary_vec, subset, eps=0.01):
 
     print 'error in riemann sampling:'
     allowable_err = eps*( np.linalg.norm(b1) + np.linalg.norm(xS_true) + np.linalg.norm(xS_rie) )
-    print max(0, np.linalg.norm(xS_true - xS_sample) - allowable_err)
+    print max(0, np.linalg.norm(xS_true-xS_rieSample) - allowable_err)
 
     print 'error in HKPR sampling:'
     allowable_err = eps*( np.linalg.norm(b1) + np.linalg.norm(xS_true) + np.linalg.norm(xS_rie) )
-    print max(0, np.linalg.norm(xS_true - xS_sample) - allowable_err)
+    print max(0, np.linalg.norm(xS_true-xS_hkprSample) - allowable_err)
 
 
 def greens_solver(Net, boundary_vec, subset, eps=0.01):
