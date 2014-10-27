@@ -34,17 +34,14 @@ class Network(object):
             i += 1
 
         #matrices
-        self.adj_mat = nx.to_numpy_matrix(self.graph, nodelist=sorted(self.graph.nodes()))
+        self.adj_mat = np.array(nx.to_numpy_matrix(self.graph, nodelist=sorted(self.graph.nodes())))
         d = np.sum(self.adj_mat, axis=1)
         self.deg_vec = np.zeros(self.size)
         self.deg_mat = np.zeros((self.size, self.size))
         for n in self.graph.nodes():
             i = self.node_to_index[n]
-            self.deg_vec[i] = d[i,0]
-            self.deg_mat[i,i] = d[i,0]
-        for i in range(self.size):
-            self.deg_vec[i] = d[i,0]
-            self.deg_mat[i,i] = d[i,0]
+            self.deg_vec[i] = d[i]
+            self.deg_mat[i,i] = d[i]
 
     # def volume(self, subset=None):
     #     """

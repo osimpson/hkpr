@@ -181,7 +181,7 @@ def compute_b2(Net, boundary_vec, subset):
     bboundS = boundary_vec[_b]
 
     b1 = compute_b1(Net, boundary_vec, subset)
-    return np.dot(b1, DS**(0.5))
+    return np.dot(np.transpose(b1), DS**(0.5))
 
 
 def restricted_solution(Net, boundary_vec, subset):
@@ -200,7 +200,7 @@ def restricted_solution(Net, boundary_vec, subset):
     """
     LS = Net.restricted_mat(Net.normalized_laplacian(), subset, subset)
     LS_inv = np.linalg.inv(LS)
-    b1 = np.transpose(compute_b1(Net, boundary_vec, subset))
+    b1 = compute_b1(Net, boundary_vec, subset)
 
     return np.dot(LS_inv, b1)
 
@@ -226,7 +226,7 @@ def restricted_solution_riemann(Net, boundary_vec, subset, eps=0.01):
     N = T/eps
 
     xS = np.zeros((s,1))
-    b1 = np.transpose(compute_b1(Net, boundary_vec, subset))
+    b1 = compute_b1(Net, boundary_vec, subset)
     for j in range(1, int(N)+1):
         xS += eps*np.dot(Net.heat_kernel_symm(subset, j*eps), b1)
 
@@ -267,7 +267,7 @@ def restricted_solution_riemann_sample(Net, boundary_vec, subset, eps=0.01):
     r = eps**(-2)*(np.log(s) + np.log(1/eps))
     print 'r', r
 
-    b1 = np.transpose(compute_b1(Net, boundary_vec, subset))
+    b1 = compute_b1(Net, boundary_vec, subset)
     xS = np.zeros((s,1))
     for i in range(int(r)):
         j = np.random.randint(int(N))+1
@@ -334,3 +334,55 @@ def err_RSRS_exphkpr(Net, boundary_vec, subset, eps=0.01):
     b1 = compute_b1(Net, boundary_vec, subset)
     allowable_err = eps*( np.linalg.norm(b1) + np.linalg.norm(xS_true) + np.linalg.norm(xS_rie) )
     return max(0, np.linalg.norm(xS_true - xS_sample) - allowable_err)
+
+
+def err_test(Net, boundary_vec, subset, eps=0.01):
+    xS_true = restricted_solution(Net, boundary_vec, subset)
+    xS_rie = restricted_solution_riemann(Net, boundary_vec, subset, eps=eps)
+    xS_sample = greens_solver_exphkpr(Net, boundary_vec, subset, eps=eps)
+    b1 = compute_b1(Net, boundary_vec, subset)
+
+    print 'error in reimann method:'
+    allowable_err = eps*(np.linalg.norm(b1)+np.linalg.norm(xS_true))
+    print max(0, np.linalg.norm(xS_true-xS_rie) - allowable_err)
+
+    print 'error in riemann sampling:'
+    allowable_err = eps*( np.linalg.norm(b1) + np.linalg.norm(xS_true) + np.linalg.norm(xS_rie) )
+    print max(0, np.linalg.norm(xS_true - xS_sample) - allowable_err)
+
+    print 'error in HKPR sampling:'
+    allowable_err = eps*( np.linalg.norm(b1) + np.linalg.norm(xS_true) + np.linalg.norm(xS_rie) )
+    print max(0, np.linalg.norm(xS_true - xS_sample) - allowable_err)
+
+
+def greens_solver(Net, boundary_vec, subset, eps=0.01):
+    """
+    Full Green's solver algorithm with Dirichlet heat kernel pagerank approximation.
+
+    Parameters:
+        Net, the Network Network (graph)
+        boundary_vec, a vector over the nodes of the graph with non-empty support
+        subset, a list of nodes in V\supp(boundary_vec)
+
+    Output:
+        the restricted solution vector xS over the nodes of the subset
+    """
+    s = len(subset)
+    T = (s**3)*(np.log((s**3)*(1./eps)))
+    print 'T', T
+    N = T/eps
+    print 'N', N
+    r = eps**(-2)*(np.log(s) + np.log(1/eps))
+    print 'r', r
+
+    b2 = compute_b2(Net, boundary_vec, subset)
+    xS = np.zeros((1,s))
+    for i in range(int(r)):
+        j = np.random.randint(int(N))+1
+        #####################################
+        xS += Net.exp_hkpr(subset, j*eps, b2)
+        #####################################
+
+    DS = Net.restricted_mat(Net.deg_mat, subset, subset)
+    DS_minushalf = np.linalg.inv(DS)**(0.5)
+    return (T/r)*np.dot(xS, DS_minushalf)
