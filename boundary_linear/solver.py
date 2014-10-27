@@ -180,23 +180,8 @@ def compute_b2(Net, boundary_vec, subset):
     _b = [Net.node_to_index[s] for s in boundS]
     bboundS = boundary_vec[_b]
 
-    b1 = np.dot(np.dot(np.dot(DS_minushalf, ASboundS), DboundS_minushalf), bboundS)
-    return np.dot(b1, DS_minushalf)
-
-
-def greens_solver(Net, boundary_vec, subset, eps=0.01):
-    s = len(subset)
-    soln = np.zeros(s)
-
-    b2 = compute_b2(Net, boundary_vec, subset)
-
-    T = (s**3)*np.log(s**3) + (s**3)*np.log(1/eps)
-    N = 1/eps*T
-    r = eps**(-2)*(np.log(s) + np.log(1/eps))
-
-    for i in range(r):
-        j = np.random.choice(range(int(N)))
-        soln += approx_hkpr()
+    b1 = compute_b1(Net, boundary_vec, subset)
+    return np.dot(b1, DS**(0.5))
 
 
 def restricted_solution(Net, boundary_vec, subset):
@@ -218,25 +203,6 @@ def restricted_solution(Net, boundary_vec, subset):
     b1 = np.transpose(compute_b1(Net, boundary_vec, subset))
 
     return np.dot(LS_inv, b1)
-
-
-def restricted_solution_int(Net, boundary_vec, subset):
-    """
-    Computes the restricted solution as the improper integral:
-        xS = int_0^{\inf} \H_t (dot) b1 dt
-    as defined in Corollary 1
-
-    \H_t = exp{-t*(\L)_S}
-
-    Parameters:
-        Net, the Network Network (graph)
-        boundary_vec, a vector over the nodes of the graph with non-empty support
-        subset, a list of nodes in V\supp(boundary_vec)
-
-    Output:
-        the restricted solution vector xS over the nodes of the subset
-    """
-    pass
 
 
 def restricted_solution_riemann(Net, boundary_vec, subset, eps=0.01):
@@ -265,3 +231,106 @@ def restricted_solution_riemann(Net, boundary_vec, subset, eps=0.01):
         xS += eps*np.dot(Net.heat_kernel_symm(subset, j*eps), b1)
 
     return xS
+
+def err_RSR(Net, boundary_vec, subset, eps=0.01):
+    """
+    Compute the Riemann sum approximation and output the error beyond what is
+    promised in Lemma 2.
+    """
+    xS_true = restricted_solution(Net, boundary_vec, subset)
+    xS_rie = restricted_solution_riemann(Net, boundary_vec, subset, eps=eps)
+    b1 = compute_b1(Net, boundary_vec, subset)
+    return max(0, np.linalg.norm(xS_true-xS_rie) - eps*(np.linalg.norm(b1)+np.linalg.norm(xS_true)))
+
+
+def restricted_solution_riemann_sample(Net, boundary_vec, subset, eps=0.01):
+    """
+    Computes the restricted solution by sampling the Riemann sum:
+        xS = sum_{j=1}^N \H_{jT/N} T/N (dot) b1
+    as defined in Lemma 3
+
+    \H_t = exp{-t*(\L)_S}
+
+    Parameters:
+        Net, the Network Network (graph)
+        boundary_vec, a vector over the nodes of the graph with non-empty support
+        subset, a list of nodes in V\supp(boundary_vec)
+
+    Output:
+        the restricted solution vector xS over the nodes of the subset
+    """
+    s = len(subset)
+    T = (s**3)*(np.log((s**3)*(1./eps)))
+    print 'T', T
+    N = T/eps
+    print 'N', N
+    r = eps**(-2)*(np.log(s) + np.log(1/eps))
+    print 'r', r
+
+    b1 = np.transpose(compute_b1(Net, boundary_vec, subset))
+    xS = np.zeros((s,1))
+    for i in range(int(r)):
+        j = np.random.randint(int(N))+1
+        xS += np.dot(Net.heat_kernel_symm(subset, j*eps), b1)
+
+    return (T/r)*xS
+
+def err_RSRS(Net, boundary_vec, subset, eps=0.01):
+    """
+    Compute the Riemann sum approximation by sampling and output the error
+    beyond what is promised in Theorem 2.
+    """
+    xS_true = restricted_solution(Net, boundary_vec, subset)
+    xS_rie = restricted_solution_riemann(Net, boundary_vec, subset, eps=eps)
+    xS_sample = restricted_solution_riemann_sample(Net, boundary_vec, subset, eps=eps)
+    b1 = compute_b1(Net, boundary_vec, subset)
+    allowable_err = eps*( np.linalg.norm(b1) + np.linalg.norm(xS_true) + np.linalg.norm(xS_rie) )
+    return max(0, np.linalg.norm(xS_true - xS_sample) - allowable_err)
+
+
+def greens_solver_exphkpr(Net, boundary_vec, subset, eps=0.01):
+    """
+    Computes the restricted solution by sampling the Riemann sum expressed with
+    Dirichlet heat kernel pagerank vectors:
+        xS = sum_{j=1}^N hkpr_{jT/N, b2} T/N
+    as defined in Corollary 2.
+
+    \H_t = exp{-t*(\L)_S}
+
+    Parameters:
+        Net, the Network Network (graph)
+        boundary_vec, a vector over the nodes of the graph with non-empty support
+        subset, a list of nodes in V\supp(boundary_vec)
+
+    Output:
+        the restricted solution vector xS over the nodes of the subset
+    """
+    s = len(subset)
+    T = (s**3)*(np.log((s**3)*(1./eps)))
+    print 'T', T
+    N = T/eps
+    print 'N', N
+    r = eps**(-2)*(np.log(s) + np.log(1/eps))
+    print 'r', r
+
+    b2 = compute_b2(Net, boundary_vec, subset)
+    xS = np.zeros((1,s))
+    for i in range(int(r)):
+        j = np.random.randint(int(N))+1
+        xS += Net.exp_hkpr(subset, j*eps, b2)
+
+    DS = Net.restricted_mat(Net.deg_mat, subset, subset)
+    DS_minushalf = np.linalg.inv(DS)**(0.5)
+    return (T/r)*np.dot(xS, DS_minushalf)
+
+def err_RSRS_exphkpr(Net, boundary_vec, subset, eps=0.01):
+    """
+    Compute the Riemann sum approximation by sampling and output the error
+    beyond what is promised in Theorem 2.
+    """
+    xS_true = restricted_solution(Net, boundary_vec, subset)
+    xS_rie = restricted_solution_riemann(Net, boundary_vec, subset, eps=eps)
+    xS_sample = greens_solver_exphkpr(Net, boundary_vec, subset, eps=eps)
+    b1 = compute_b1(Net, boundary_vec, subset)
+    allowable_err = eps*( np.linalg.norm(b1) + np.linalg.norm(xS_true) + np.linalg.norm(xS_rie) )
+    return max(0, np.linalg.norm(xS_true - xS_sample) - allowable_err)
