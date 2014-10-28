@@ -3,12 +3,12 @@ import solver
 import cProfile
 
 execfile('/home/olivia/UCSD/projects/datasets/datasets.py')
-execfile('/home/olivia/UCSD/projects/datasets/nxexample.py')
+# execfile('/home/olivia/UCSD/projects/datasets/nxexample.py')
 
 
 def test_network(Net, eps=0.01, randfactor=1):
     subset_size = min(int((1./5)*Net.size), 100)
-    f.write('subset size: '+str(subset_size))
+    f.write('\nsubset size: '+str(subset_size))
     subset = Net.random_hop_cluster_size(subset_size)
     boundary_vec = np.zeros((Net.size, 1))
     vertex_boundary = Net.vertex_boundary(subset)

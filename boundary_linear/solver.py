@@ -10,60 +10,6 @@ np.set_printoptions(precision=20)
 #####################################################################
 
 
-def approx_hkpr_matmult(Net, t, seed_vec, num_trials=1000, verbose=False):
-    """
-    Use matrix multiplication to estimate a heat kernel pagerank vector as the
-    expected distribution of: fP^k with probability Pois(lam=t).
-
-    Parameters:
-        t, temperature parameter
-        seed_vec, the vector f
-        num_trials, number of independent experiments
-
-    Output:
-        a dictionary of node, vector values
-    """
-    n = Net.size
-    k = np.random.poisson(lam=t)
-    if verbose: print 'k', k, 'random walk steps'
-    appr = np.dot(seed_vec, np.linalg.matrix_power(Net.walk_mat, k))
-    for i in range(num_trials-1):
-        k = np.random.poisson(lam=t)
-        if verbose: print 'k', k, 'random walk steps'
-        appr += np.dot(seed_vec, np.linalg.matrix_power(Net.walk_mat, k))
-    appr = appr/num_trials
-    appr = np.array(appr)[0]
-
-    return appr
-
-
-# def approx_matmult_rwk(Net, k, seed_vec=None, eps=0.01, verbose=False, normalized=False):
-#     """
-#     Tool for checking approximating fP^k with random walks of length k.
-#     """
-#     # initialize 0-vector of size n
-#     n = Net.size
-#     approxhkpr = np.zeros(n)
-
-#     # r = (16.0/eps**3)*np.log(n)
-#     r = (16.0/eps**2)*np.log(n)
-#     # r = (16.0/eps)*np.log(n)
-
-#     if verbose:
-#         print 'r: ', r
-#         print 'k: ', k
-
-#     for i in range(int(r)):
-#         v = Net.random_walk(k, seed_vec=seed_vec, verbose=False)
-#         approxhkpr[Net.node_to_index[v]] += 1
-#     approxhkpr = approxhkpr/r
-
-#     if normalized:
-#         return get_normalized_node_vector_values(Net, approxhkpr)
-#     else:
-#         return get_node_vector_values(Net, approxhkpr)
-
-
 def approx_hkpr(Net, subset, t, f, eps=0.01, verbose=False):
     """
     An implementation of the ApproxHKPR algorithm using random walks.
@@ -102,20 +48,20 @@ def approx_hkpr(Net, subset, t, f, eps=0.01, verbose=False):
     # r = (16.0/eps**2)*np.log(n)
     # r = (16.0/eps)*np.log(n)
 
-    K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
+    # K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
     # K = 2*t
 
     if verbose:
         print 'r: ', r
         print 'expected number of random walk steps: ', t
-        print 'K: ', K
+        # print 'K: ', K
 
     if f_p is not None:
         for i in range(int(r)):
             #positive part
             start_node = draw_node_from_dist(Net, f_p)
             k = np.random.poisson(lam=t)
-            k = int(min(k,K))
+            # k = int(min(k,K))
             v = Net.random_walk_seed(k, start_node, verbose=False)
             approxhkpr[Net.node_to_index[v]] += np.linalg.norm(f_plus, ord=1)
         approxhkpr = approxhkpr/r
@@ -129,7 +75,8 @@ def approx_hkpr(Net, subset, t, f, eps=0.01, verbose=False):
             approxhkpr[Net.node_to_index[v]] -= np.linalg.norm(f_minus, ord=1)
         approxhkpr = approxhkpr/r
 
-    return approxhkpr
+    indx = [Net.node_to_index[s] for s in subset]
+    return approxhkpr[indx]
 
 
 def approx_hkpr_err(true, appr, eps):
@@ -269,10 +216,12 @@ def restricted_solution_riemann_sample(Net, boundary_vec, subset, eps=0.01):
     print '\tr', r
 
     b1 = compute_b1(Net, boundary_vec, subset)
+    _b1_ = np.linalg.norm(b1, ord=1)
+    b1_unit = b1/_b1_
     xS = np.zeros((s,1))
     for i in range(int(r)):
         j = np.random.randint(int(N))+1
-        xS += np.dot(Net.heat_kernel_symm(subset, j*eps), b1)
+        xS += np.dot(Net.heat_kernel_symm(subset, j*eps), b1_unit)*_b1_
 
     return (T/r)*xS
 
