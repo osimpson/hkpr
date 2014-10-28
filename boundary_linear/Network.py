@@ -119,6 +119,9 @@ class Network(object):
             a dictionary of node, vector values
         """
         heat_kernel = self.heat_kernel(subset, t)
+        if f.shape[0] != heat_kernel.shape[1]:
+            indx = [self.node_to_index[s] for s in subset]
+            f = f[indx]
         hkpr = np.dot(f, heat_kernel)
 
         return hkpr
@@ -229,23 +232,9 @@ class Network(object):
     #     return cur_node
 
 
-class Localnetwork(Network):
-    """
-    A subclass that assumes a smaller subset of nodes and computations
-    restricted to the induced subgraph.
-    """
-
-    def __init__(self, network, subset):
-        netxsg = network.graph.subgraph(subset)
-        Network.__init__(self, netx=netxsg)
-        self.vertex_boundary = network.vertex_boundary(subset)
-
-
 #####################################################################
 ### matrix functions
 #####################################################################
-
-
 
 
 def indicator_vector(Net, node=None):
@@ -268,80 +257,3 @@ def draw_node_from_dist(Net, dist_vec):
     indx = np.random.choice(Net.index_to_node.keys(), p=dist_vec)
     node = Net.index_to_node[indx]
     return node
-
-
-# def get_node_vector_values(Net, vec):
-#     """
-#     Return a dictionary of node, vector values for list/vector vec.
-#     """
-#     vals = {}
-#     for i in range(vec.size):
-#         vals[Net.index_to_node[i]] = vec[i]
-#     return vals
-
-# def get_normalized_node_vector_values(Net, vec):
-#     """
-#     Return a dictionary of node, vector values for list/vector vec
-#     and normalize each value by node degree.
-#     """
-#     vals = {}
-#     for i in range(vec.size):
-#         node = Net.index_to_node[i]
-#         vals[node] = vec[i]/Net.graph.degree(node)
-#     return vals
-
-
-# def draw_vec(self, vec, file_name, label_names=True):
-
-#     G = pydot.Dot(graph_type='graph')
-
-#     # normalize range of vector values to map to a unit interval
-#     min_v = min(vec)
-#     max_v = max(vec)
-#     norm_v = [(x-min_v)/(max_v-min_v) for x in vec]
-
-#     for n in self.graph.nodes():
-#         if label_names:
-#             node = pydot.Node(str(n))
-#         else:
-#             node = pydot.Node("")
-#         node.set_style('filled')
-#         color = 255 - (norm_v[self.node_to_index[n]]/max(norm_v)*255)
-#         node.set_fillcolor('#ff%02x%02x' % (color,color))
-
-#         G.add_node(node)
-
-#     for (u,v) in self.graph.edges():
-#         edge = pydot.Edge(str(u),str(v))
-#         G.add_edge(edge)
-
-#     G.write_png(file_name, prog='neato')
-
-# def draw_vec(self, dic, file_name, label_names=True):
-
-#     G = pydot.Dot(graph_type='graph')
-
-#     # normalize range of vector values to map to a unit interval
-#     min_v = min(dic.values())
-#     max_v = max(dic.values())
-#     norm_d = {}
-#     for nd in dic:
-#         norm_d[nd] = (dic[nd]-min_v)/(max_v-min_v)
-
-#     maxval = max(norm_d.values())
-#     for n in self.graph.nodes():
-#         node = pydot.Node(str(n))
-#         node.set_style('filled')
-#         node.set_shape('circle')
-#         if not label_names:
-#             node.set_label(" ")
-#         color = 255 - (norm_d[n]/maxval*255)
-#         node.set_fillcolor('#ff%02x%02x' % (color,color))
-
-#         G.add_node(node)
-
-#     for (u,v) in self.graph.edges():
-#         edge = pydot.Edge(str(u),str(v))
-#         G.add_edge(edge)
-
-#     G.write_png(file_name, prog='neato')
