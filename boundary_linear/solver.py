@@ -10,7 +10,7 @@ np.set_printoptions(precision=20)
 #####################################################################
 
 
-def approx_hkpr(Net, subset, t, f, eps=0.01, verbose=False):
+def approx_hkpr(Net, subset, t, f, K, eps=0.01, verbose=False):
     """
     An implementation of the ApproxHKPR algorithm using random walks.
 
@@ -48,20 +48,24 @@ def approx_hkpr(Net, subset, t, f, eps=0.01, verbose=False):
     # r = (16.0/eps**2)*np.log(n)
     # r = (16.0/eps)*np.log(n)
 
-    # K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
-    # K = 2*t
+    if K == 'bound':
+        K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
+    elif K == 'mean':
+        K = 2*t
+    elif K == 'unlim':
+        K = float("infinity")
 
     if verbose:
         print 'r: ', r
         print 'expected number of random walk steps: ', t
-        # print 'K: ', K
+        print 'K: ', K
 
     if f_p is not None:
         for i in range(int(r)):
             #positive part
             start_node = draw_node_from_dist(Net, f_p)
             k = np.random.poisson(lam=t)
-            # k = int(min(k,K))
+            k = int(min(k,K))
             v = Net.random_walk_seed(k, start_node, verbose=False)
             approxhkpr[Net.node_to_index[v]] += np.linalg.norm(f_plus, ord=1)
         approxhkpr = approxhkpr/r
@@ -79,7 +83,7 @@ def approx_hkpr(Net, subset, t, f, eps=0.01, verbose=False):
     return approxhkpr[indx]
 
 
-def approx_hkpr_err(true, appr, eps):
+def approx_hkpr_err_unit(true, appr, eps):
     """
     Compute the error according to the definition of component-wise additive
     and multiplicative error for approximate heat kernel pagerank vectors.
@@ -98,6 +102,10 @@ def approx_hkpr_err(true, appr, eps):
         if comp_err > 0:
             err += comp_err
     return err
+
+def approx_hkpr_err(true, appr, f, eps):
+    allowable_err = eps*np.linalg.norm(f, ord=1)*np.linalg.norm(true, ord=1)
+    return min(0, np.linalg.norm(true-appr, ord=1) - allowable_err)
 
 
 #####################################################################
