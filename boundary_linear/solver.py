@@ -246,6 +246,41 @@ def err_RSRS(Net, boundary_vec, subset, eps=0.01):
     return max(0, np.linalg.norm(xS_true - xS_sample) - allowable_err)
 
 
+def greens_solver_exphkpr_riemann(Net, boundary_vec, subset, eps=0.01):
+    """
+    Computes the restricted solution by sampling the Riemann sum expressed with
+    Dirichlet heat kernel pagerank vectors:
+        xS = sum_{j=1}^N hkpr_{jT/N, b2} T/N
+    as defined in Corollary 2.
+
+    \H_t = exp{-t*(\L)_S}
+
+    Parameters:
+        Net, the Network Network (graph)
+        boundary_vec, a vector over the nodes of the graph with non-empty support
+        subset, a list of nodes in V\supp(boundary_vec)
+
+    Output:
+        the restricted solution vector xS over the nodes of the subset
+    """
+    s = len(subset)
+    T = (s**3)*(np.log((s**3)*(1./eps)))
+    print '\tT', T
+    N = T/eps
+    print '\tN', N
+
+    b2 = compute_b2(Net, boundary_vec, subset)
+    _b2_ = np.linalg.norm(b2, ord=1)
+    b2_unit = b2/_b2_
+    xS = np.zeros((1,s))
+    for j in range(1, int(N)+1):
+        xS += Net.exp_hkpr(subset, j*eps, b2_unit)
+
+    DS = Net.restricted_mat(Net.deg_mat, subset, subset)
+    DS_minushalf = np.linalg.inv(DS)**(0.5)
+    return (T/r)*np.dot(xS, DS_minushalf)*_b2_
+
+
 def greens_solver_exphkpr(Net, boundary_vec, subset, eps=0.01):
     """
     Computes the restricted solution by sampling the Riemann sum expressed with
