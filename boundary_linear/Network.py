@@ -119,9 +119,9 @@ class Network(object):
             a dictionary of node, vector values
         """
         heat_kernel = self.heat_kernel(subset, t)
-        if f.shape[1] != heat_kernel.shape[1]:
+        if f.shape[1] != heat_kernel.shape[0]:
             indx = [self.node_to_index[s] for s in subset]
-            f = f[indx]
+            f = f[:,indx]
         hkpr = np.dot(f, heat_kernel)
 
         return hkpr
