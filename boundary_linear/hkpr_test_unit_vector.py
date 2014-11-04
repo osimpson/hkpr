@@ -1,14 +1,18 @@
+"""
+Test hkpr approximation with varying walk lengths for unit vectors, and
+different values of t.
+"""
+
 from Network import *
 import solver
 
 execfile('/home/olivia/UCSD/projects/datasets/datasets.py')
 
 
-def test_hkpr(Net, eps=0.01):
+def test_hkpr(Net, t, eps=0.01):
     subset_size = min(int((1./5)*Net.size), 100)
     subset = Net.random_hop_cluster_size(subset_size)
 
-    t = (subset_size**3)*(np.log((subset_size**3)*(1./eps)))
     f.write('\n\nt='+str(t))
     f.write('\nsubset size: '+str(subset_size))
     #unit vector
@@ -42,38 +46,62 @@ def test_hkpr(Net, eps=0.01):
 # test_network(example)
 # f.close()
 
-f = open('hkpr_tests_dolphins_unit.txt', 'w')
+f = open('hkpr_tests_dolphins_unit_overt.txt', 'w')
 print '\ngenerating dolphins network...'
 dolphins = Network(GRAPH_DATASETS['dolphins'])
 f.write('dolphins\n')
-test_hkpr(dolphins)
-test_hkpr(dolphins, randfactor=10)
-test_hkpr(dolphins, randfactor=100)
+subset_size = min(int((1./5)*dolphins.size), 100)
+t = (subset_size**3)*(np.log((subset_size**3)*(1./eps)))
+test_hkpr(dolphins, t)
+t = t/2
+test_hkpr(dolphins, t)
+t = t/2
+test_hkpr(dolphins, t)
+t = t/2
+test_hkpr(dolphins, t)
 f.close()
 
-f = open('hkpr_tests_lesmis_unit.txt', 'w')
+f = open('hkpr_tests_lesmis_unit_overt.txt', 'w')
 print '\ngenerating lesmis network...'
 lesmis = Network(GRAPH_DATASETS['lesmis'])
 f.write('lesmis\n')
-test_hkpr(lesmis)
-test_hkpr(lesmis, randfactor=10)
-test_hkpr(lesmis, randfactor=100)
+subset_size = min(int((1./5)*lesmis.size), 100)
+t = (subset_size**3)*(np.log((subset_size**3)*(1./eps)))
+test_hkpr(lesmis, t)
+t = t/2
+test_hkpr(lesmis, t)
+t = t/2
+test_hkpr(lesmis, t)
+t = t/2
+test_hkpr(lesmis, t)
 f.close()
 
-#f = open('hkpr_tests_power.txt', 'w')
-#print '\ngenerating power network...'
-#power = Network(GRAPH_DATASETS['power'])
-#f.write('power\n')
-#test_hkpr(power)
-#test_hkpr(power, randfactor=10)
-#test_hkpr(power, randfactor=100)
-#f.close()
+f = open('hkpr_tests_power.txt', 'w')
+print '\ngenerating power network...'
+power = Network(GRAPH_DATASETS['power'])
+f.write('power\n')
+subset_size = min(int((1./5)*power.size), 100)
+t = (subset_size**3)*(np.log((subset_size**3)*(1./eps)))
+test_hkpr(power, t)
+t = t/2
+test_hkpr(power, t)
+t = t/2
+test_hkpr(power, t)
+t = t/2
+test_hkpr(power, t)
+f.close()
 
-# f = open('hkpr_tests_facebook.txt', 'w')
-# print '\ngenerating facebook network...'
-# facebook = Network(edge_list=GRAPH_DATASETS['facebook'])
-# f.write('facebook\n')
-# test_hkpr(facebook)
-# test_hkpr(facebook, randfactor=10)
-# test_hkpr(facebook, randfactor=100)
-# f.close()
+f = open('hkpr_tests_facebook.txt', 'w')
+print '\ngenerating facebook network...'
+facebook = Network(edge_list=GRAPH_DATASETS['facebook'])
+f.write('facebook\n')
+subset_size = min(int((1./5)*facebook.size), 100)
+t = (subset_size**3)*(np.log((subset_size**3)*(1./eps)))
+test_hkpr(facebook, t)
+t = t/2
+test_hkpr(facebook, t)
+t = t/2
+test_hkpr(facebook, t)
+t = t/2
+test_hkpr(facebook, t)
+f.close()
