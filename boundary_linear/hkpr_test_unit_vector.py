@@ -76,7 +76,7 @@ t = t/2
 test_hkpr(lesmis, t)
 f.close()
 
-f = open('hkpr_tests_power.txt', 'w')
+f = open('hkpr_tests_power_unit_overt.txt', 'w')
 print '\ngenerating power network...'
 power = Network(GRAPH_DATASETS['power'])
 f.write('power\n')
@@ -91,7 +91,7 @@ t = t/2
 test_hkpr(power, t)
 f.close()
 
-f = open('hkpr_tests_facebook.txt', 'w')
+f = open('hkpr_tests_facebook_unit_overt.txt', 'w')
 print '\ngenerating facebook network...'
 facebook = Network(edge_list=GRAPH_DATASETS['facebook'])
 f.write('facebook\n')
