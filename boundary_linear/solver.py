@@ -278,7 +278,7 @@ def greens_solver_exphkpr_riemann(Net, boundary_vec, subset, eps=0.01):
 
     DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     DS_minushalf = np.linalg.inv(DS)**(0.5)
-    return (T/r)*np.dot(xS, DS_minushalf)*_b2_
+    return np.dot(xS, DS_minushalf)*_b2_
 
 
 def greens_solver_exphkpr(Net, boundary_vec, subset, eps=0.01):
