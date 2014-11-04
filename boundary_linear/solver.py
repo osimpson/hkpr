@@ -25,24 +25,29 @@ def approx_hkpr(Net, subset, t, f, K, eps=0.01, verbose=False):
     """
     #initialize 0-vector of size n
     n = Net.size
-    approxhkpr = np.zeros(n)
+    approxhkpr = np.zeros((1,n))
 
     #create distribution vectors
-    f_plus = np.zeros(n)
-    f_minus = np.zeros(n)
-    for i in range(n):
-        if f[i] > 0.0:
-            f_plus[i] = f[i]
-        elif f[i] < 0.0:
-            f_minus[i] = -f[i]
-    if np.linalg.norm(f_plus, ord=1) > 0:
-        f_p = f_plus/np.linalg.norm(f_plus, ord=1)
-    else:
-        f_p = None
-    if np.linalg.norm(f_minus, ord=1) > 0:
-        f_m = f_minus/np.linalg.norm(f_minus, ord=1)
-    else:
-        f_m = None
+    # f_plus = np.zeros(n)
+    # f_minus = np.zeros(n)
+    # for i in range(n):
+    #     if f[0][i] > 0.0:
+    #         f_plus[i] = f[0][i]
+    #     elif f[0][i] < 0.0:
+    #         f_minus[i] = -f[0][i]
+    # if np.linalg.norm(f_plus, ord=1) > 0:
+    #     _f_p = np.linalg.norm(f_plus, ord=1)
+    #     f_p = f_plus/_f_p
+    # else:
+    #     f_p = None
+    # if np.linalg.norm(f_minus, ord=1) > 0:
+    #     _f_m = np.linalg.norm(f_minus, ord=1)
+    #     f_m = f_minus/_f_m
+    # else:
+    #     f_m = None
+    _f_ = np.linalg.norm(f, ord=1, axis=1)
+    f_unit = f/_f_
+    f_unit = f_unit.reshape(f_unit.shape[1],) 
 
     r = (16.0/eps**3)*np.log(n)
     # r = (16.0/eps**2)*np.log(n)
@@ -60,27 +65,34 @@ def approx_hkpr(Net, subset, t, f, K, eps=0.01, verbose=False):
         print 'expected number of random walk steps: ', t
         print 'K: ', K
 
-    if f_p is not None:
-        for i in range(int(r)):
-            #positive part
-            start_node = draw_node_from_dist(Net, f_p)
-            k = np.random.poisson(lam=t)
-            k = int(min(k,K))
-            v = Net.random_walk_seed(k, start_node, verbose=False)
-            approxhkpr[Net.node_to_index[v]] += np.linalg.norm(f_plus, ord=1)
-        approxhkpr = approxhkpr/r
-    if f_m is not None:
-        for i in range(int(r)):
-            #negative part
-            start_node = draw_node_from_dist(Net, f_m)
-            k = np.random.poisson(lam=t)
-            k = int(min(k,K))
-            v = Net.random_walk_seed(k, start_node, verbose=False)
-            approxhkpr[Net.node_to_index[v]] -= np.linalg.norm(f_minus, ord=1)
-        approxhkpr = approxhkpr/r
+    # if f_p is not None:
+    #     for i in range(int(r)):
+    #         #positive part
+    #         start_node = draw_node_from_dist(Net, f_p)
+    #         k = np.random.poisson(lam=t)
+    #         k = int(min(k,K))
+    #         v = Net.random_walk_seed(k, start_node, verbose=False)
+    #         approxhkpr[0][Net.node_to_index[v]] += _f_p
+    #     approxhkpr = approxhkpr/r
+    # if f_m is not None:
+    #     for i in range(int(r)):
+    #         #negative part
+    #         start_node = draw_node_from_dist(Net, f_m)
+    #         k = np.random.poisson(lam=t)
+    #         k = int(min(k,K))
+    #         v = Net.random_walk_seed(k, start_node, verbose=False)
+    #         approxhkpr[0][Net.node_to_index[v]] -= _f_m
+    #     approxhkpr = approxhkpr/r
+    for i in range(int(r)):
+        start_node = draw_node_from_dist(Net, f_unit)
+        k = np.random.poisson(lam=t)
+        k = int(min(k,K))
+        v = Net.random_walk_seed(k, start_node, verbose=False)
+        approxhkpr[0][Net.node_to_index[v]] += _f_
+    approxhkpr = approxhkpr/r
 
     indx = [Net.node_to_index[s] for s in subset]
-    return approxhkpr[indx]
+    return approxhkpr[:,indx]
 
 
 def approx_hkpr_err_unit(true, appr, eps):
@@ -90,22 +102,22 @@ def approx_hkpr_err_unit(true, appr, eps):
 
     This function outputs the total error beyond what we allow.
     """
-    if true.size != appr.size:
+    if true.shape != appr.shape:
         print 'vector dimensions do not match'
         return
     err = 0
     for i in range(true.size):
-        if appr[i] == 0:
-            comp_err = appr[i] - eps
+        if appr[0][i] == 0:
+            comp_err = appr[0][i] - eps
         else:
-            comp_err = (abs(true[i]-appr[i])) - (eps*true[i])
+            comp_err = (abs(true[0][i]-appr[0][i])) - (eps*true[0][i])
         if comp_err > 0:
             err += comp_err
     return err
 
 def approx_hkpr_err(true, appr, f, eps):
-    allowable_err = eps*np.linalg.norm(f, ord=1)*np.linalg.norm(true, ord=1)
-    return min(0, np.linalg.norm(true-appr, ord=1) - allowable_err)
+    allowable_err = eps*np.linalg.norm(f, ord=1, axis=1)*np.linalg.norm(true, ord=1, axis=1)
+    return min(0, np.linalg.norm(true-appr, ord=1, axis=1) - allowable_err)
 
 
 #####################################################################
@@ -270,15 +282,17 @@ def greens_solver_exphkpr_riemann(Net, boundary_vec, subset, eps=0.01):
     print '\tN', N
 
     b2 = compute_b2(Net, boundary_vec, subset)
-    _b2_ = np.linalg.norm(b2, ord=1)
-    b2_unit = b2/_b2_
+    # _b2_ = np.linalg.norm(b2, ord=1)
+    # b2_unit = b2/_b2_
     xS = np.zeros((1,s))
     for j in range(1, int(N)+1):
-        xS += Net.exp_hkpr(subset, j*eps, b2_unit)
+        # xS += Net.exp_hkpr(subset, j*eps, b2_unit)
+        xS += Net.exp_hkpr(subset, j*eps, b2)
 
     DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     DS_minushalf = np.linalg.inv(DS)**(0.5)
-    return np.dot(xS, DS_minushalf)*_b2_
+    # return np.dot(xS, DS_minushalf)*_b2_
+    return np.dot(xS, DS_minushalf)
 
 
 def greens_solver_exphkpr(Net, boundary_vec, subset, eps=0.01):
