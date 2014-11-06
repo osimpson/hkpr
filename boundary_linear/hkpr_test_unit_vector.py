@@ -46,6 +46,8 @@ def test_hkpr(Net, t, eps=0.01):
 # test_network(example)
 # f.close()
 
+eps = 0.01
+
 f = open('hkpr_tests_dolphins_unit_overt.txt', 'w')
 print '\ngenerating dolphins network...'
 dolphins = Network(GRAPH_DATASETS['dolphins'])
