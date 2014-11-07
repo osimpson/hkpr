@@ -35,17 +35,17 @@ def approx_hkpr(Net, subset, t, f, K, eps=0.01, verbose=False):
     #         f_plus[i] = f[0][i]
     #     elif f[0][i] < 0.0:
     #         f_minus[i] = -f[0][i]
-    # if np.linalg.norm(f_plus, ord=1) > 0:
-    #     _f_p = np.linalg.norm(f_plus, ord=1)
+    # if np.sum(f_plus) > 0:
+    #     _f_p = np.sum(f_plus)
     #     f_p = f_plus/_f_p
     # else:
     #     f_p = None
-    # if np.linalg.norm(f_minus, ord=1) > 0:
-    #     _f_m = np.linalg.norm(f_minus, ord=1)
+    # if np.sum(f_minus) > 0:
+    #     _f_m = np.sum(f_minus)
     #     f_m = f_minus/_f_m
     # else:
     #     f_m = None
-    _f_ = np.linalg.norm(f, ord=1, axis=1)
+    _f_ = np.sum(f)
     f_unit = f/_f_
     f_unit = f_unit.reshape(f_unit.shape[1],)
 
@@ -237,7 +237,7 @@ def restricted_solution_riemann_sample(Net, boundary_vec, subset, eps=0.01):
     print '\tr', r
 
     b1 = compute_b1(Net, boundary_vec, subset)
-    _b1_ = np.linalg.norm(b1, ord=1)
+    _b1_ = np.sum(b1)
     b1_unit = b1/_b1_
     xS = np.zeros((s,1))
     for i in range(int(r)):
@@ -283,7 +283,7 @@ def greens_solver_exphkpr_riemann(Net, boundary_vec, subset, eps=0.01):
     print '\tN', N
 
     b2 = compute_b2(Net, boundary_vec, subset)
-    # _b2_ = np.linalg.norm(b2, ord=1)
+    # _b2_ = np.sum(b2)
     # b2_unit = b2/_b2_
     xS = np.zeros((1,s))
     for j in range(1, int(N)+1):
@@ -322,7 +322,7 @@ def greens_solver_exphkpr(Net, boundary_vec, subset, eps=0.01):
     print '\tr', r
 
     b2 = compute_b2(Net, boundary_vec, subset)
-    _b2_ = np.linalg.norm(b2, ord=1)
+    _b2_ = np.sum(b2)
     b2_unit = b2/_b2_
     xS = np.zeros((1,s))
     for i in range(int(r)):
