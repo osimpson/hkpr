@@ -237,14 +237,14 @@ def restricted_solution_riemann_sample(Net, boundary_vec, subset, eps=0.01):
     print '\tr', r
 
     b1 = compute_b1(Net, boundary_vec, subset)
-    _b1_ = np.sum(b1)
-    b1_unit = b1/_b1_
+    # _b1_ = np.sum(b1)
+    # b1_unit = b1/_b1_
     xS = np.zeros((s,1))
     for i in range(int(r)):
         j = np.random.randint(int(N))+1
-        xS += np.dot(Net.heat_kernel_symm(subset, j*eps), b1_unit)
+        xS += np.dot(Net.heat_kernel_symm(subset, j*eps), b1)
 
-    return (T/r)*xS*_b1_
+    return (T/r)*xS
 
 def err_RSRS(Net, boundary_vec, subset, eps=0.01):
     """
@@ -331,8 +331,7 @@ def greens_solver_exphkpr(Net, boundary_vec, subset, eps=0.01):
 
     DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     DS_minushalf = np.linalg.inv(DS)**(0.5)
-    return (T:while :
-        pass/r)*np.dot(xS, DS_minushalf)
+    return (T/r)*np.dot(xS, DS_minushalf)
 
 def err_RSRS_exphkpr(Net, boundary_vec, subset, eps=0.01):
     """
