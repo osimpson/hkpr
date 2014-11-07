@@ -191,9 +191,9 @@ def restricted_solution_riemann(Net, boundary_vec, subset, eps=0.01):
     """
     s = len(subset)
     T = (s**3)*(np.log((s**3)*(1./eps)))
-    print 'T = ',T
+    print '\tT = ',T
     N = T/eps
-    print 'N = ',N
+    print '\tN = ',N
 
     xS = np.zeros((s,1))
     b1 = compute_b1(Net, boundary_vec, subset)
@@ -322,16 +322,17 @@ def greens_solver_exphkpr(Net, boundary_vec, subset, eps=0.01):
     print '\tr', r
 
     b2 = compute_b2(Net, boundary_vec, subset)
-    _b2_ = np.sum(b2)
-    b2_unit = b2/_b2_
+    # _b2_ = np.sum(b2)
+    # b2_unit = b2/_b2_
     xS = np.zeros((1,s))
     for i in range(int(r)):
         j = np.random.randint(int(N))+1
-        xS += Net.exp_hkpr(subset, j*eps, b2_unit)
+        xS += Net.exp_hkpr(subset, j*eps, b2)
 
     DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     DS_minushalf = np.linalg.inv(DS)**(0.5)
-    return (T/r)*np.dot(xS, DS_minushalf)*_b2_
+    return (T:while :
+        pass/r)*np.dot(xS, DS_minushalf)
 
 def err_RSRS_exphkpr(Net, boundary_vec, subset, eps=0.01):
     """
@@ -344,26 +345,6 @@ def err_RSRS_exphkpr(Net, boundary_vec, subset, eps=0.01):
     b1 = compute_b1(Net, boundary_vec, subset)
     allowable_err = eps*( np.linalg.norm(b1) + np.linalg.norm(xS_true) + np.linalg.norm(xS_rie) )
     return max(0, np.linalg.norm(xS_true-xS_sample) - allowable_err)
-
-
-def err_test(Net, boundary_vec, subset, eps=0.01):
-    xS_true = restricted_solution(Net, boundary_vec, subset)
-    xS_rie = restricted_solution_riemann(Net, boundary_vec, subset, eps=eps)
-    xS_rieSample = restricted_solution_riemann_sample(Net, boundary_vec, subset, eps=eps)
-    xS_hkprSample = greens_solver_exphkpr(Net, boundary_vec, subset, eps=eps)
-    b1 = compute_b1(Net, boundary_vec, subset)
-
-    print 'error in reimann method:'
-    allowable_err = eps*(np.linalg.norm(b1)+np.linalg.norm(xS_true))
-    print max(0, np.linalg.norm(xS_true-xS_rie) - allowable_err)
-
-    print 'error in riemann sampling:'
-    allowable_err = eps*( np.linalg.norm(b1) + np.linalg.norm(xS_true) + np.linalg.norm(xS_rie) )
-    print max(0, np.linalg.norm(xS_true-xS_rieSample) - allowable_err)
-
-    print 'error in HKPR sampling:'
-    allowable_err = eps*( np.linalg.norm(b1) + np.linalg.norm(xS_true) + np.linalg.norm(xS_rie) )
-    print max(0, np.linalg.norm(xS_true-xS_hkprSample) - allowable_err)
 
 
 def greens_solver(Net, boundary_vec, subset, eps=0.01):
