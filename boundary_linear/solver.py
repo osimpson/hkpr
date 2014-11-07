@@ -47,7 +47,7 @@ def approx_hkpr(Net, subset, t, f, K, eps=0.01, verbose=False):
     #     f_m = None
     _f_ = np.linalg.norm(f, ord=1, axis=1)
     f_unit = f/_f_
-    f_unit = f_unit.reshape(f_unit.shape[1],) 
+    f_unit = f_unit.reshape(f_unit.shape[1],)
 
     r = (16.0/eps**3)*np.log(n)
     # r = (16.0/eps**2)*np.log(n)
@@ -191,7 +191,9 @@ def restricted_solution_riemann(Net, boundary_vec, subset, eps=0.01):
     """
     s = len(subset)
     T = (s**3)*(np.log((s**3)*(1./eps)))
+    print 'T = ',T
     N = T/eps
+    print 'N = ',N
 
     xS = np.zeros((s,1))
     b1 = compute_b1(Net, boundary_vec, subset)
@@ -209,7 +211,6 @@ def err_RSR(Net, boundary_vec, subset, eps=0.01):
     xS_rie = restricted_solution_riemann(Net, boundary_vec, subset, eps=eps)
     b1 = compute_b1(Net, boundary_vec, subset)
     return max(0, np.linalg.norm(xS_true-xS_rie) - eps*(np.linalg.norm(b1)+np.linalg.norm(xS_true)))
-
 
 def restricted_solution_riemann_sample(Net, boundary_vec, subset, eps=0.01):
     """
@@ -287,7 +288,7 @@ def greens_solver_exphkpr_riemann(Net, boundary_vec, subset, eps=0.01):
     xS = np.zeros((1,s))
     for j in range(1, int(N)+1):
         # xS += Net.exp_hkpr(subset, j*eps, b2_unit)
-        xS += Net.exp_hkpr(subset, j*eps, b2)
+        xS += eps*Net.exp_hkpr(subset, j*eps, b2)
 
     DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     DS_minushalf = np.linalg.inv(DS)**(0.5)
