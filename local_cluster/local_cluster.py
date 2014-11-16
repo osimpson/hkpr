@@ -86,21 +86,23 @@ def approx_hkpr_seed(Net, t, start_node, eps=0.01, verbose=False, normalized=Fal
     n = Net.size
     approxhkpr = np.zeros(n)
 
-    # r = (16.0/eps**3)*np.log(n)
-    r = (16.0/eps**2)*np.log(n)
+    r = (16.0/eps**3)*np.log(n)
+    # r = (16.0/eps**2)*np.log(n)
     # r = (16.0/eps)*np.log(n)
 
-    # K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
+    K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
     # K = t
 
     if verbose:
         print 'r: ', r
-        # print 'K: ', K
+        print 'K: ', K  
+
+    steps = np.random.poisson(lam=t, size=r)
 
     for i in range(int(r)):
-        k = np.random.poisson(lam=t)
-        # k = int(min(k,K))
-        v = Net.random_walk_seed(k, start_node, verbose=False)
+        k = steps[i]
+        k = int(min(k,K))
+        v = Net.random_walk_seed(k, start_node)
         approxhkpr[Net.node_to_index[v]] += 1
     approxhkpr = approxhkpr/r
 

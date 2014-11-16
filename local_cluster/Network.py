@@ -130,11 +130,22 @@ class Network(object):
         Outputs the last node visited in a k-step random walk on the graph
         starting from start_node.
         """
+
+        def random_neighbor(node):
+            neighbs = self.graph[node].keys()
+            d = len(neighbs)
+            tmp = np.random.random()
+            for j in range(d):
+                if tmp < (j+1)*(1./d):
+                    return self.graph[node].keys()[j]
+
         cur_node = start_node
         if verbose:
             print 'start:', cur_node
         for steps in range(k):
-            next_node = np.random.choice(self.graph.neighbors(cur_node))
+            # next_node = np.random.choice(self.graph.neighbors(cur_node))
+            # next_node = np.random.choice(self.graph[cur_node].keys())
+            next_node = random_neighbor(cur_node)
             cur_node = next_node
             if verbose:
                 print cur_node
@@ -142,28 +153,35 @@ class Network(object):
             print 'stop:', cur_node
         return cur_node
 
-    def random_walk(self, k, seed_vec=None, verbose=False):
-        """
-        Outputs the last node visited in a k-step random walk on the graph
-        using seed_vec as a starting distribution.
-        """
-        if seed_vec is not None:
-            cur_node = draw_node_from_dist(self, seed_vec)
-        else:
-            # choose start node according to dv/vol(G)
-            total = sum(self.deg_vec)
-            p = self.deg_vec/total
-            cur_node = np.random.choice(self.graph.nodes(), p=p)
-        if verbose:
-            print 'start:', cur_node
-        for steps in range(k):
-            next_node = np.random.choice(self.graph.neighbors(cur_node))
-            cur_node = next_node
-            if verbose:
-                print cur_node
-        if verbose:
-            print 'stop:', cur_node
-        return cur_node
+    def random_walk_seed_matmult(self, k, start_node):
+        seed_vec = indicator_vector(self, start_node)
+        prod = np.dot(seed_vec, self.walk_mat**k)
+        dist = np.ravel(prod)
+
+        return np.random.choice(self.graph.nodes(), p=dist)
+
+    # def random_walk(self, k, seed_vec=None, verbose=False):
+    #     """
+    #     Outputs the last node visited in a k-step random walk on the graph
+    #     using seed_vec as a starting distribution.
+    #     """
+    #     if seed_vec is not None:
+    #         cur_node = draw_node_from_dist(self, seed_vec)
+    #     else:
+    #         # choose start node according to dv/vol(G)
+    #         total = sum(self.deg_vec)
+    #         p = self.deg_vec/total
+    #         cur_node = np.random.choice(self.graph.nodes(), p=p)
+    #     if verbose:
+    #         print 'start:', cur_node
+    #     for steps in range(k):
+    #         next_node = np.random.choice(self.graph.neighbors(cur_node))
+    #         cur_node = next_node
+    #         if verbose:
+    #             print cur_node
+    #     if verbose:
+    #         print 'stop:', cur_node
+    #     return cur_node
 
 
     def nxpagerank(self, seed_vec, alpha=0.85, normalized=False):
