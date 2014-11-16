@@ -216,23 +216,17 @@ class Localnetwork(Network):
         self.walk_mat = np.dot(np.linalg.inv(self.deg_mat), self.adj_mat)
 
 
-    def __init__(self, gml_file=None, netx=None, edge_list=None):
+    @classmethod
+    def fullgraph(cls, gml_file=None, netx=None, edge_list=None):
         """
         If full network is small enough, can initialize it as a Localnetwork.
+
+	example use:
+	>>>> dolphins = Network.Localnetwork.fullgraph(gml_file="dolphins.gml")
         """
-        Network.__init__(self, gml_file=gml_file, netx=netx, edge_list=edge_list)
-        self.adj_mat = nx.to_numpy_matrix(self.graph, nodelist=sorted(self.graph.nodes()))
-        d = np.sum(self.adj_mat, axis=1)
-        self.deg_vec = np.zeros(self.size)
-        self.deg_mat = np.zeros((self.size, self.size))
-        for n in self.graph.nodes():
-            i = self.node_to_index[n]
-            self.deg_vec[i] = d[i,0]
-            self.deg_mat[i,i] = d[i,0]
-        # for i in range(self.size):
-        #     self.deg_vec[i] = d[i,0]
-        #     self.deg_mat[i,i] = d[i,0]
-        self.walk_mat = np.dot(np.linalg.inv(self.deg_mat), self.adj_mat)
+	network = Network(gml_file=gml_file, netx=netx, edge_list=edge_list)
+	subset = network.graph.nodes()
+	return cls(network, subset)
 
 
     def laplacian_combo(self):
@@ -416,3 +410,4 @@ def draw_vec(self, dic, file_name, label_names=True):
         G.add_edge(edge)
 
     G.write_png(file_name, prog='neato')
+
