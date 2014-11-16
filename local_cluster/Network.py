@@ -3,6 +3,7 @@ import numpy as np
 import pydot
 import operator
 import scipy
+from scipy import linalg
 
 execfile('/home/olivia/UCSD/projects/datasets/datasets.py')
 
@@ -222,7 +223,7 @@ class Localnetwork(Network):
         If full network is small enough, can initialize it as a Localnetwork.
 
 	example use:
-	>>>> dolphins = Network.Localnetwork.fullgraph(gml_file="dolphins.gml")
+	dolphins = Network.Localnetwork.fullgraph(gml_file="dolphins.gml")
         """
 	network = Network(gml_file=gml_file, netx=netx, edge_list=edge_list)
 	subset = network.graph.nodes()
@@ -242,7 +243,7 @@ class Localnetwork(Network):
         laplace = np.eye(self.size) - self.walk_mat
 
         # heat kernel
-        return scipy.linalg.expm(-t*laplace)
+        return linalg.expm(-t*laplace)
 
 
     def exp_hkpr(self, t, seed_vec, normalized=False):
@@ -257,6 +258,10 @@ class Localnetwork(Network):
 
         Output:
             a dictionary of node, vector values
+ 
+        >>> test = dolphins.exp_hkpr(t, seed_vec)
+        >>> test == {2: 0.1666666666666512, 37: 0.16666666666665114, 53: 0.1666666666666512, 61: 0.50000000000004707}
+	True
         """
         f = seed_vec
         heat_ker = self.heat_ker(t)
@@ -411,3 +416,15 @@ def draw_vec(self, dic, file_name, label_names=True):
 
     G.write_png(file_name, prog='neato')
 
+
+if __name__ == "__main__":
+    import doctest
+
+    dolphins_full = Network(GRAPH_DATASETS['dolphins'])
+    subset = [61, 2, 37, 53]
+    dolphins = Localnetwork(dolphins, subset)
+    node = dolphins_full.graph.nodes()[-1]
+    seed_vec = indicator_vector(dolphins, node)
+    t = 15.0
+
+    doctest.testmod(globs=dict(dolphins=dolphins, seed_vec=seed_vec, t=t))
