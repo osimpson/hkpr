@@ -142,7 +142,7 @@ class Network(object):
         cur_node = start_node
         if verbose:
             print 'start:', cur_node
-        for steps in range(k):
+        for steps in xrange(k):
             # next_node = np.random.choice(self.graph.neighbors(cur_node))
             # next_node = np.random.choice(self.graph[cur_node].keys())
             next_node = random_neighbor(cur_node)

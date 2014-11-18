@@ -1,6 +1,7 @@
 import networkx as nx
 import numpy as np
 import pydot
+import multiprocessing as mp
 from Network import *
 
 np.set_printoptions(precision=20)
@@ -95,7 +96,7 @@ def approx_hkpr_seed(Net, t, start_node, eps=0.01, verbose=False, normalized=Fal
 
     if verbose:
         print 'r: ', r
-        print 'K: ', K  
+        print 'K: ', K
 
     steps = np.random.poisson(lam=t, size=r)
 
@@ -104,6 +105,70 @@ def approx_hkpr_seed(Net, t, start_node, eps=0.01, verbose=False, normalized=Fal
         k = int(min(k,K))
         v = Net.random_walk_seed(k, start_node)
         approxhkpr[Net.node_to_index[v]] += 1
+    approxhkpr = approxhkpr/r
+
+    if normalized:
+        return get_normalized_node_vector_values(Net, approxhkpr)
+    else:
+        return get_node_vector_values(Net, approxhkpr)
+
+
+def approx_hkpr_seed_mp(Net, t, start_node, eps=0.01, verbose=False, normalized=False):
+    """
+    An implementation of the ApproxHKPRseed algorithm using random walks.
+
+    Parameters:
+        t, temperature parameter
+        start_node, the seed node
+        eps, desired error parameter
+        normalized, if set to true, output vector values normalized by
+            node degree
+
+    Output:
+        a dictionary of node, vector values
+    """
+    n = Net.size
+
+    r = (16.0/eps**3)*np.log(n)
+    # r = (16.0/eps**2)*np.log(n)
+    # r = (16.0/eps)*np.log(n)
+
+    K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
+    # K = t
+
+    if verbose:
+        print 'r: ', r
+        print 'K: ', K
+
+    #split up the sampling over all processors and collect in a queue
+    collect_samples = mp.Queue()
+    num_processes = mp.cpu_count()
+    def generate_samples(collect_samples):
+        num_samples = int(np.ceil(r/num_processes))
+        steps = np.random.poisson(lam=t, size=num_samples)
+        approxhkpr_samples = np.zeros(n)
+
+        for i in xrange(num_samples):
+            k = steps[i]
+            k = int(min(k,K))
+            v = Net.random_walk_seed(k, start_node)
+            approxhkpr_samples[Net.node_to_index[v]] += 1
+        collect_samples.put(approxhkpr_samples)
+
+    #set up a list of processes
+    processes = [mp.Process(target=generate_samples, args=(collect_samples,))
+                 for x in range(num_processes)]
+
+    #run processes
+    for p in processes:
+        p.start()
+    #exit completed processes
+    for p in processes:
+        p.join()
+
+    #get process results from output queue
+    cum_samples = [collect_samples.get() for p in processes]
+    approxhkpr = sum(cum_samples)
     approxhkpr = approxhkpr/r
 
     if normalized:
@@ -131,6 +196,22 @@ def approx_hkpr_err(true, appr, eps):
         if comp_err > 0:
             err += comp_err
     return err
+
+
+# dolphins = Localnetwork.fullgraph(GRAPH_DATASETS['dolphins'])
+# node = dolphins.graph.nodes()[-1]
+# t = 30.0
+# 
+# approx_hkpr = approx_hkpr_seed_mp(dolphins, t, node, verbose=True)
+# approx_vec = np.array(approx_hkpr.values())
+# print sum(approx_vec)
+# 
+# seed_vec = indicator_vector(dolphins, node)
+# true_hkpr = dolphins.exp_hkpr(t, seed_vec)
+# true_vec = np.array(true_hkpr.values())
+# print sum(true_vec)
+# 
+# print approx_hkpr_err(true_vec, approx_vec, 0.01)
 
 
 #####################################################################
