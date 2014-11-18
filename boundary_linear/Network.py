@@ -251,12 +251,12 @@ class Network(object):
 def indicator_vector(Net, node=None):
     """
     Compute the indicator vector for the given network and node.
-    Output as a numpy array.
+    Output as a numpy nparray of size (1,n).
     """
     if node is None:
         node = np.random.choice(Net.graph.nodes())
-    chi = np.zeros(Net.size)
-    chi[Net.node_to_index[node]] = 1.0
+    chi = np.zeros((1,Net.size))
+    chi[0][Net.node_to_index[node]] = 1.0
     return chi
 
 
