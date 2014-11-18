@@ -1,6 +1,7 @@
 import networkx as nx
 import numpy as np
 from scipy.integrate import quad
+import multiprocessing as mp
 from Network import *
 
 np.set_printoptions(precision=20)
@@ -15,10 +16,10 @@ def approx_hkpr(Net, subset, t, f, K, eps=0.01, verbose=False):
     An implementation of the ApproxHKPR algorithm using random walks.
 
     Parameters:
-        subset, the subset over which we compute
-        t, temperature parameter
-        f, the seed vector
-        eps, desired error parameter
+        subset, [list] the subset over which we compute
+        t, [float] temperature parameter
+        f, [nparray of shape (1,s)] the seed vector
+        eps, [float < 1.0] desired error parameter
 
     Output:
         Dirichlet heat kernel pagerank f_S H_t
@@ -89,6 +90,116 @@ def approx_hkpr(Net, subset, t, f, K, eps=0.01, verbose=False):
         k = int(min(k,K))
         v = Net.random_walk_seed(k, start_node, verbose=False)
         approxhkpr[0][Net.node_to_index[v]] += _f_
+    approxhkpr = approxhkpr/r
+
+    indx = [Net.node_to_index[s] for s in subset]
+    return approxhkpr[:,indx]
+
+
+def approx_hkpr_mp(Net, subset, t, f, K='bound', eps=0.01, verbose=False):
+    """
+    An implementation of the ApproxHKPR algorithm using random walks.
+    Use multiprocessing to launch random walks in parallel
+
+    Parameters:
+        subset, [list] the subset over which we compute
+        t, [float] temperature parameter
+        f, [nparray of shape (1,s)] the seed vector
+        eps, [float < 1.0] desired error parameter
+
+    Output:
+        epsilon-approximate Dirichlet heat kernel pagerank f_S H_t
+    """
+    n = Net.size
+
+    #create distribution vectors
+    # f_plus = np.zeros(n)
+    # f_minus = np.zeros(n)
+    # for i in range(n):
+    #     if f[0][i] > 0.0:
+    #         f_plus[i] = f[0][i]
+    #     elif f[0][i] < 0.0:
+    #         f_minus[i] = -f[0][i]
+    # if np.sum(f_plus) > 0:
+    #     _f_p = np.sum(f_plus)
+    #     f_p = f_plus/_f_p
+    # else:
+    #     f_p = None
+    # if np.sum(f_minus) > 0:
+    #     _f_m = np.sum(f_minus)
+    #     f_m = f_minus/_f_m
+    # else:
+    #     f_m = None
+    _f_ = np.sum(f)
+    f_unit = f/_f_
+    f_unit = f_unit.reshape(f_unit.shape[1],)
+
+    r = (16.0/eps**3)*np.log(n)
+    # r = (16.0/eps**2)*np.log(n)
+    # r = (16.0/eps)*np.log(n)
+
+    if K == 'bound':
+        K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
+    elif K == 'mean':
+        K = 2*t
+    elif K == 'unlim':
+        K = float("infinity")
+
+    if verbose:
+        print 'r: ', r
+        print 'expected number of random walk steps: ', t
+        print 'K: ', K
+
+    # if f_p is not None:
+    #     for i in range(int(r)):
+    #         #positive part
+    #         start_node = draw_node_from_dist(Net, f_p)
+    #         k = np.random.poisson(lam=t)
+    #         k = int(min(k,K))
+    #         v = Net.random_walk_seed(k, start_node, verbose=False)
+    #         approxhkpr[0][Net.node_to_index[v]] += _f_p
+    #     approxhkpr = approxhkpr/r
+    # if f_m is not None:
+    #     for i in range(int(r)):
+    #         #negative part
+    #         start_node = draw_node_from_dist(Net, f_m)
+    #         k = np.random.poisson(lam=t)
+    #         k = int(min(k,K))
+    #         v = Net.random_walk_seed(k, start_node, verbose=False)
+    #         approxhkpr[0][Net.node_to_index[v]] -= _f_m
+    #     approxhkpr = approxhkpr/r
+
+    #split up the sampling over all processors and collect in a queue
+    collect_samples = mp.Queue()
+    num_processes = mp.cpu_count()
+    def generate_samples(collect_samples):
+        num_samples = int(np.ceil(r/num_processes))
+        steps = np.random.poisson(lam=t, size=num_samples)
+        print 'maximum random walk steps', max(steps)
+        approxhkpr_samples = np.zeros((1,n))
+
+        for i in xrange(num_samples):
+            start_node = draw_node_from_dist(Net, f_unit)
+            k = steps[i]
+            k = int(min(k,K))
+            v = Net.random_walk_seed(k, start_node)
+            approxhkpr_samples[0][Net.node_to_index[v]] += _f_
+        collect_samples.put(approxhkpr_samples)
+
+    #set up a list of processes
+    processes = [mp.Process(target=generate_samples, args=(collect_samples,))
+                 for x in range(num_processes)]
+
+    #run processes
+    for p in processes:
+        p.start()
+    #exit completed processes
+    for p in processes:
+        p.join()
+
+    #get process results from output queue
+    cum_samples = [collect_samples.get() for p in processes]
+    approxhkpr = sum(cum_samples)
     approxhkpr = approxhkpr/r
 
     indx = [Net.node_to_index[s] for s in subset]
