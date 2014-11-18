@@ -110,13 +110,12 @@ class Network(object):
         Exact computation of Dirichlet hkpr(t,f) = f^T H_t.
 
         Parameters:
-            t, temperature parameters
-            seed_vec, the preference vector
-            normalized, if set to true, output vector values normalized by
-                node degree
+            subset, [list] the subset over which we compute
+            t, [float] temperature parameter
+            f, [nparray of shape (1,s)] the seed vector
 
         Output:
-            a dictionary of node, vector values
+            Dirichlet heat kernel pagerank f_S H_t
         """
         heat_kernel = self.heat_kernel(subset, t)
         if f.shape[1] != heat_kernel.shape[0]:
@@ -128,6 +127,18 @@ class Network(object):
 
 
     def restricted_mat(self, mat, row_subset, column_subset):
+        """
+        Return the matrix with columns indexed by nodes in column_subset
+        and rows indexed by nodes in row_subset
+
+        Parameters:
+			mat, [nparray] matrix to be reduced
+			row_subset, [list] subset of nodes
+			column_subset, [list] subset of nodes
+
+		Output:
+			a row- and column-restricted matrix
+        """
         rwindx = [self.node_to_index[s] for s in row_subset]
         clmindx = [self.node_to_index[s] for s in column_subset]
         return mat[[[s] for s in rwindx], clmindx]
