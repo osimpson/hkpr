@@ -69,7 +69,7 @@ def approx_hkpr(Net, subset, t, f, K, eps=0.01, verbose=False):
     # if f_p is not None:
     #     for i in range(int(r)):
     #         #positive part
-    #         start_node = draw_node_from_dist(Net, f_p)
+    #         start_node = draw_node_from_dist(Net, f_p, subset=subset)
     #         k = np.random.poisson(lam=t)
     #         k = int(min(k,K))
     #         v = Net.random_walk_seed(k, start_node, verbose=False)
@@ -78,14 +78,14 @@ def approx_hkpr(Net, subset, t, f, K, eps=0.01, verbose=False):
     # if f_m is not None:
     #     for i in range(int(r)):
     #         #negative part
-    #         start_node = draw_node_from_dist(Net, f_m)
+    #         start_node = draw_node_from_dist(Net, f_m, subset=subset)
     #         k = np.random.poisson(lam=t)
     #         k = int(min(k,K))
     #         v = Net.random_walk_seed(k, start_node, verbose=False)
     #         approxhkpr[0][Net.node_to_index[v]] -= _f_m
     #     approxhkpr = approxhkpr/r
     for i in range(int(r)):
-        start_node = draw_node_from_dist(Net, f_unit)
+        start_node = draw_node_from_dist(Net, f_unit, subset=subset)
         k = np.random.poisson(lam=t)
         k = int(min(k,K))
         v = Net.random_walk_seed(k, start_node, verbose=False)
@@ -153,7 +153,7 @@ def approx_hkpr_mp(Net, subset, t, f, K='bound', eps=0.01, verbose=False):
     # if f_p is not None:
     #     for i in range(int(r)):
     #         #positive part
-    #         start_node = draw_node_from_dist(Net, f_p)
+    #         start_node = draw_node_from_dist(Net, f_p, subset=subset)
     #         k = np.random.poisson(lam=t)
     #         k = int(min(k,K))
     #         v = Net.random_walk_seed(k, start_node, verbose=False)
@@ -162,7 +162,7 @@ def approx_hkpr_mp(Net, subset, t, f, K='bound', eps=0.01, verbose=False):
     # if f_m is not None:
     #     for i in range(int(r)):
     #         #negative part
-    #         start_node = draw_node_from_dist(Net, f_m)
+    #         start_node = draw_node_from_dist(Net, f_m, subset=subset)
     #         k = np.random.poisson(lam=t)
     #         k = int(min(k,K))
     #         v = Net.random_walk_seed(k, start_node, verbose=False)
@@ -179,7 +179,7 @@ def approx_hkpr_mp(Net, subset, t, f, K='bound', eps=0.01, verbose=False):
         approxhkpr_samples = np.zeros((1,n))
 
         for i in xrange(num_samples):
-            start_node = draw_node_from_dist(Net, f_unit)
+            start_node = draw_node_from_dist(Net, f_unit, subset=subset)
             k = steps[i]
             k = int(min(k,K))
             v = Net.random_walk_seed(k, start_node)

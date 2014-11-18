@@ -231,30 +231,6 @@ class Network(object):
         return cur_node
 
 
-    # def random_walk(self, k, seed_vec=None, verbose=False):
-    #     """
-    #     Outputs the last node visited in a k-step random walk on the graph
-    #     using seed_vec as a starting distribution.
-    #     """
-    #     if seed_vec is not None:
-    #         cur_node = draw_node_from_dist(self, seed_vec)
-    #     else:
-    #         # choose start node according to dv/vol(G)
-    #         total = sum(self.deg_vec)
-    #         p = self.deg_vec/total
-    #         cur_node = np.random.choice(self.graph.nodes(), p=p)
-    #     if verbose:
-    #         print 'start:', cur_node
-    #     for steps in range(k):
-    #         next_node = np.random.choice(self.graph.neighbors(cur_node))
-    #         cur_node = next_node
-    #         if verbose:
-    #             print cur_node
-    #     if verbose:
-    #         print 'stop:', cur_node
-    #     return cur_node
-
-
 #####################################################################
 ### matrix functions
 #####################################################################
@@ -272,11 +248,13 @@ def indicator_vector(Net, node=None):
     return chi
 
 
-def draw_node_from_dist(Net, dist_vec):
+def draw_node_from_dist(Net, dist_vec, subset=None):
     """
     Draw a random node from the network based on probability distribution
     given by dist_vec.
     """
-    indx = np.random.choice(Net.index_to_node.keys(), p=dist_vec)
+    if subset is None:
+        subset = Net.index_to_node.keys()
+    indx = np.random.choice(subset, p=dist_vec)
     node = Net.index_to_node[indx]
     return node
