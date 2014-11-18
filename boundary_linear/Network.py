@@ -207,17 +207,29 @@ class Network(object):
         Outputs the last node visited in a k-step random walk on the graph
         starting from start_node.
         """
+
+        def random_neighbor(node):
+            neighbs = self.graph[node].keys()
+            d = len(neighbs)
+            tmp = np.random.random()
+            for j in range(d):
+                if tmp < (j+1)*(1./d):
+                    return self.graph[node].keys()[j]
+
         cur_node = start_node
         if verbose:
             print 'start:', cur_node
-        for steps in range(k):
-            next_node = np.random.choice(self.graph.neighbors(cur_node))
+        for steps in xrange(k):
+            # next_node = np.random.choice(self.graph.neighbors(cur_node))
+            # next_node = np.random.choice(self.graph[cur_node].keys())
+            next_node = random_neighbor(cur_node)
             cur_node = next_node
             if verbose:
                 print cur_node
         if verbose:
             print 'stop:', cur_node
         return cur_node
+
 
     # def random_walk(self, k, seed_vec=None, verbose=False):
     #     """
