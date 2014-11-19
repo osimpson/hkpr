@@ -227,8 +227,7 @@ def approx_hkpr_err_unit(true, appr, eps):
     return err
 
 def approx_hkpr_err(true, appr, f, eps):
-    allowable_err = eps*np.linalg.norm(f, ord=1, axis=1)*np.linalg.norm(true, ord=1, axis=1)
-    return min(0, np.linalg.norm(true-appr, ord=1, axis=1) - allowable_err)
+    return max(0, approx_hkpr_err_unit(true, appr, eps) - np.linalg.norm(f, axis=1))
 
 
 #####################################################################
