@@ -176,7 +176,8 @@ def approx_hkpr_mp(Net, subset, t, f, K='bound', eps=0.01, verbose=False):
         num_samples = int(np.ceil(r/num_processes))
         steps = np.random.poisson(lam=t, size=num_samples)
         print 'maximum random walk steps', max(steps)
-        approxhkpr_samples = np.zeros((1,n))
+        if verbose:
+            approxhkpr_samples = np.zeros((1,n))
 
         for i in xrange(num_samples):
             start_node = draw_node_from_dist(Net, f_unit, subset=subset)
