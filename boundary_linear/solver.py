@@ -493,14 +493,14 @@ def greens_solver(Net, boundary_vec, subset, eps, gamma):
     DS_minushalf = np.linalg.inv(DS)**(0.5)
     return (T/r)*np.dot(xS, DS_minushalf)
 
-def err_RSRS_exphkpr(Net, boundary_vec, subset, eps, gamma):
+def err_RSRS_apprhkpr(Net, boundary_vec, subset, eps, gamma):
     """
     Compute the error beyond what is promised in Theorem 2 by the
     Green's Solver algorithm.
     """
     xS_true = restricted_solution(Net, boundary_vec, subset)
     xS_rie = restricted_solution_riemann(Net, boundary_vec, subset, gamma)
-    xS_sample = greens_solver_exphkpr(Net, boundary_vec, subset, gamma)
+    xS_sample = greens_solver(Net, boundary_vec, subset, eps, gamma)
     b1 = compute_b1(Net, boundary_vec, subset)
     b2 = compute_b2(Net, boundary_vec, subset)
     allowable_err = gamma*( np.linalg.norm(b1) + np.linalg.norm(xS_true) +
