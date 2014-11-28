@@ -96,7 +96,7 @@ def approx_hkpr(Net, subset, t, f, K, eps, verbose=False):
     return approxhkpr[:,indx]
 
 
-def approx_hkpr_mp(Net, subset, t, f, eps, K='bound', verbose=False):
+def approx_hkpr_mp(Net, subset, t, f, eps, K='bound', method='rw', verbose=False):
     """
     An implementation of the ApproxHKPR algorithm using random walks.
     Use multiprocessing to launch random walks in parallel
@@ -172,13 +172,22 @@ def approx_hkpr_mp(Net, subset, t, f, eps, K='bound', verbose=False):
     #split up the sampling over all processors and collect in a queue
     collect_samples = mp.Queue()
     num_processes = mp.cpu_count()
+    def generate_samples_mm(collect_samples):
+        r = np.sqrt(r)
+        num_samples = int(np.ceil(r/num_processes))
+        steps = np.random.poisson(lam=t, size=num_samples)
+        approxhkpr_samples = np.zeros((1,n))
+        for i in xrange(num_samples):
+            k = steps[i]
+            k = int(min(k,K))
+            approxhkpr_samples += _f_*np.dot(f_unit, np.linalg.matrix_power(Net.walk_mat, k))
+        collect_samples.put(approxhkpr_samples)
     def generate_samples(collect_samples):
         num_samples = int(np.ceil(r/num_processes))
         steps = np.random.poisson(lam=t, size=num_samples)
-        print 'maximum random walk steps', max(steps)
         if verbose:
-            approxhkpr_samples = np.zeros((1,n))
-
+            print 'maximum random walk steps', max(steps)
+        approxhkpr_samples = np.zeros((1,n))
         for i in xrange(num_samples):
             start_node = draw_node_from_dist(Net, f_unit, subset=subset)
             k = steps[i]
@@ -188,8 +197,12 @@ def approx_hkpr_mp(Net, subset, t, f, eps, K='bound', verbose=False):
         collect_samples.put(approxhkpr_samples)
 
     #set up a list of processes
-    processes = [mp.Process(target=generate_samples, args=(collect_samples,))
-                 for x in range(num_processes)]
+    if method == 'mm':
+        processes = [mp.Process(target=generate_samples_mm, args=(collect_samples,))
+                     for x in range(num_processes)]
+    else:
+        processes = [mp.Process(target=generate_samples, args=(collect_samples,))
+                     for x in range(num_processes)]
 
     #run processes
     for p in processes:
@@ -288,7 +301,7 @@ def restricted_solution(Net, boundary_vec, subset):
     return np.dot(LS_inv, b1)
 
 
-def restricted_solution_riemann(Net, boundary_vec, subset, gamma):
+def restricted_solution_riemann(Net, boundary_vec, subset, gamma, verbose=False):
     """
     Computes the restricted solution as the Riemann sum:
         xS = sum_{j=1}^N \H_{jT/N} T/N (dot) b1
@@ -306,9 +319,11 @@ def restricted_solution_riemann(Net, boundary_vec, subset, gamma):
     """
     s = len(subset)
     T = (s**3)*(np.log((s**3)*(1./gamma)))
-    print '\tT = ',T
     N = T/gamma
-    print '\tN = ',N
+    if verbose:
+        print 'gamma', gamma
+        print 'T', T
+        print 'N', N
 
     xS = np.zeros((s,1))
     b1 = compute_b1(Net, boundary_vec, subset)
@@ -327,7 +342,7 @@ def err_RSR(Net, boundary_vec, subset, gamma):
     b1 = compute_b1(Net, boundary_vec, subset)
     return max(0, np.linalg.norm(xS_true-xS_rie) - gamma*(np.linalg.norm(b1)+np.linalg.norm(xS_true)))
 
-def restricted_solution_riemann_sample(Net, boundary_vec, subset, gamma):
+def restricted_solution_riemann_sample(Net, boundary_vec, subset, gamma, verbose=False):
     """
     Computes the restricted solution by sampling the Riemann sum:
         xS = sum_{j=1}^N \H_{jT/N} T/N (dot) b1
@@ -345,17 +360,19 @@ def restricted_solution_riemann_sample(Net, boundary_vec, subset, gamma):
     """
     s = len(subset)
     T = (s**3)*(np.log((s**3)*(1./gamma)))
-    print '\tT', T
     N = T/gamma
-    print '\tN', N
     r = gamma**(-2)*(np.log(s) + np.log(1/gamma))
-    print '\tr', r
+    if verbose:
+        print 'gamma', gamma
+        print 'T', T
+        print 'N', N
+        print 'r', r
 
     b1 = compute_b1(Net, boundary_vec, subset)
     # _b1_ = np.sum(b1)
     # b1_unit = b1/_b1_
     xS = np.zeros((s,1))
-    for i in range(int(r)):
+    for i in xrange(int(r)):
         j = np.random.randint(int(N))+1
         xS += np.dot(Net.heat_kernel_symm(subset, j*gamma), b1)
 
@@ -368,14 +385,13 @@ def err_RSRS(Net, boundary_vec, subset, gamma):
     """
     xS_true = restricted_solution(Net, boundary_vec, subset)
     xS_rie = restricted_solution_riemann(Net, boundary_vec, subset, gamma)
-    xS_sample = restricted_solution_riemann_sample(Net, boundary_vec, subset,
-gamma)
+    xS_sample = restricted_solution_riemann_sample(Net, boundary_vec, subset, gamma)
     b1 = compute_b1(Net, boundary_vec, subset)
     allowable_err = gamma*( np.linalg.norm(b1) + np.linalg.norm(xS_true) + np.linalg.norm(xS_rie) )
     return max(0, np.linalg.norm(xS_true - xS_sample) - allowable_err)
 
 
-def greens_solver_exphkpr_riemann(Net, boundary_vec, subset, gamma):
+def greens_solver_exphkpr_riemann(Net, boundary_vec, subset, gamma, verbose=False):
     """
     Computes the restricted solution by sampling the Riemann sum expressed with
     Dirichlet heat kernel pagerank vectors:
@@ -394,9 +410,11 @@ def greens_solver_exphkpr_riemann(Net, boundary_vec, subset, gamma):
     """
     s = len(subset)
     T = (s**3)*(np.log((s**3)*(1./gamma)))
-    print '\tT', T
     N = T/gamma
-    print '\tN', N
+    if verbose:
+        print 'gamma', gamma
+        print 'T', T
+        print 'N', N
 
     b2 = compute_b2(Net, boundary_vec, subset)
     # _b2_ = np.sum(b2)
@@ -412,7 +430,7 @@ def greens_solver_exphkpr_riemann(Net, boundary_vec, subset, gamma):
     return np.dot(xS, DS_minushalf)
 
 
-def greens_solver_exphkpr(Net, boundary_vec, subset, gamma):
+def greens_solver_exphkpr(Net, boundary_vec, subset, gamma, verbose=False):
     """
     Computes the restricted solution by sampling the Riemann sum expressed with
     Dirichlet heat kernel pagerank vectors:
@@ -431,17 +449,21 @@ def greens_solver_exphkpr(Net, boundary_vec, subset, gamma):
     """
     s = len(subset)
     T = (s**3)*(np.log((s**3)*(1./gamma)))
-    print '\tT', T
     N = T/gamma
-    print '\tN', N
     r = gamma**(-2)*(np.log(s) + np.log(1/gamma))
-    print '\tr', r
+    if verbose:
+        print 'gamma', gamma
+        print 'T', T
+        print 'N', N
+        print 'r', r
 
     b2 = compute_b2(Net, boundary_vec, subset)
     # _b2_ = np.sum(b2)
     # b2_unit = b2/_b2_
     xS = np.zeros((1,s))
+    # ts = np.random.randint(1, int(N)+1, size=int(np.ceil(r)))
     for i in range(int(r)):
+        # j = ts[i]
         j = np.random.randint(int(N))+1
         xS += Net.exp_hkpr(subset, j*gamma, b2)
 
@@ -462,7 +484,7 @@ def err_RSRS_exphkpr(Net, boundary_vec, subset, gamma):
     return max(0, np.linalg.norm(xS_true-xS_sample) - allowable_err)
 
 
-def greens_solver(Net, boundary_vec, subset, eps, gamma):
+def greens_solver(Net, boundary_vec, subset, eps, gamma, method='rw', verbose=False):
     """
     Full Green's solver algorithm with Dirichlet heat kernel pagerank approximation.
 
@@ -476,18 +498,21 @@ def greens_solver(Net, boundary_vec, subset, eps, gamma):
     """
     s = len(subset)
     T = (s**3)*(np.log((s**3)*(1./gamma)))
-    print 'T', T
     N = T/gamma
-    print 'N', N
     r = gamma**(-2)*(np.log(s) + np.log(1/gamma))
-    print 'r', r
+    if verbose:
+        print 'eps', eps
+        print 'gamma', gamma
+        print 'T', T
+        print 'N', N
+        print 'r', r
 
     b2 = compute_b2(Net, boundary_vec, subset)
     xS = np.zeros((1,s))
     ts = np.random.randint(1, int(N)+1, size=int(np.ceil(r)))
     for i in xrange(int(r)):
-        j = ts[i] 
-        xS += approx_hkpr_mp(Net, subset, j*gamma, b2, eps=eps)
+        j = ts[i]
+        xS += approx_hkpr_mp(Net, subset, j*gamma, b2, eps, method=method, verbose=verbose)
 
     DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     DS_minushalf = np.linalg.inv(DS)**(0.5)
