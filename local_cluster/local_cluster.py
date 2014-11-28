@@ -113,7 +113,7 @@ def approx_hkpr_seed(Net, t, start_node, eps=0.01, verbose=False, normalized=Fal
         return get_node_vector_values(Net, approxhkpr)
 
 
-def approx_hkpr_seed_mp(Net, t, start_node, eps=0.01, verbose=False, normalized=False):
+def approx_hkpr_seed_mp(Net, t, start_node, K=None, eps=0.01, verbose=False, normalized=False):
     """
     An implementation of the ApproxHKPRseed algorithm using random walks.
 
@@ -133,8 +133,9 @@ def approx_hkpr_seed_mp(Net, t, start_node, eps=0.01, verbose=False, normalized=
     # r = (16.0/eps**2)*np.log(n)
     # r = (16.0/eps)*np.log(n)
 
-    K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
-    # K = t
+    if K is None:
+        K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
+        # K = t
 
     if verbose:
         print 'r: ', r
@@ -201,16 +202,16 @@ def approx_hkpr_err(true, appr, eps):
 # dolphins = Localnetwork.fullgraph(GRAPH_DATASETS['dolphins'])
 # node = dolphins.graph.nodes()[-1]
 # t = 30.0
-# 
+#
 # approx_hkpr = approx_hkpr_seed_mp(dolphins, t, node, verbose=True)
 # approx_vec = np.array(approx_hkpr.values())
 # print sum(approx_vec)
-# 
+#
 # seed_vec = indicator_vector(dolphins, node)
 # true_hkpr = dolphins.exp_hkpr(t, seed_vec)
 # true_vec = np.array(true_hkpr.values())
 # print sum(true_vec)
-# 
+#
 # print approx_hkpr_err(true_vec, approx_vec, 0.01)
 
 
