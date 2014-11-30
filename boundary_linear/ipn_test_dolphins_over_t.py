@@ -2,7 +2,7 @@ import sys
 
 execfile('ipn_dolphins_example.py')
 
-eps, gamma = sys.argv[1:]
+eps, gamma, K = sys.argv[1:]
 eps = float(eps)
 gamma = float(gamma)
 s = len(subset)
@@ -21,7 +21,7 @@ for t in ts:
     print 'computing true'
     true_t = dolphins.exp_hkpr(subset, t, b2)
     print 'computing appr'
-    appr_t = solver.approx_hkpr_mp(dolphins, subset, t, b2, eps, verbose=True)
+    appr_t = solver.approx_hkpr_mp(dolphins, subset, t, b2, eps, K=K, verbose=True)
     err_unit.append(solver.approx_hkpr_err_unit(true_t, appr_t, eps))
     err_2norm.append(solver.approx_hkpr_err(true_t, appr_t, b2, eps))
     err_1norm.append(solver.approx_hkpr_err_1norm(true_t, appr_t, b2, eps))
@@ -33,12 +33,12 @@ print err_2norm
 print '\nerr_1norm'
 print err_1norm
 
-f = open('dolphins_err_unit'+str(eps)+str(gamma)+'.txt', 'w')
+f = open('dolphins_err_unit_'+str(eps)+'_'+str(gamma)+'.txt', 'w')
 f.write(err_unit)
 f.close()
-f = open('dolphins_err_2norm'+str(eps)+str(gamma)+'.txt', 'w')
+f = open('dolphins_err_2norm_'+str(eps)+'_'+str(gamma)+'.txt', 'w')
 f.write(err_2norm)
 f.close()
-f = open('dolphins_err_1norm'+str(eps)+str(gamma)+'.txt', 'w')
+f = open('dolphins_err_1norm_'+str(eps)+'_'+str(gamma)+'.txt', 'w')
 f.write(err_1norm)
 f.close()
