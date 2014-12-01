@@ -96,7 +96,7 @@ def approx_hkpr(Net, subset, t, f, K, eps, verbose=False):
     return approxhkpr[:,indx]
 
 
-def approx_hkpr_mp(Net, subset, t, f, eps, K='bound', method='rw', verbose=False):
+def approx_hkpr_mp(Net, subset, t, f, eps, K='bound', verbose=False):
     """
     An implementation of the ApproxHKPR algorithm using random walks.
     Use multiprocessing to launch random walks in parallel
@@ -172,16 +172,6 @@ def approx_hkpr_mp(Net, subset, t, f, eps, K='bound', method='rw', verbose=False
     #split up the sampling over all processors and collect in a queue
     collect_samples = mp.Queue()
     num_processes = mp.cpu_count()
-    def generate_samples_mm(collect_samples):
-        r = np.sqrt(r)
-        num_samples = int(np.ceil(r/num_processes))
-        steps = np.random.poisson(lam=t, size=num_samples)
-        approxhkpr_samples = np.zeros((1,n))
-        for i in xrange(num_samples):
-            k = steps[i]
-            k = int(min(k,K))
-            approxhkpr_samples += _f_*np.dot(f_unit, np.linalg.matrix_power(Net.walk_mat, k))
-        collect_samples.put(approxhkpr_samples)
     def generate_samples(collect_samples):
         num_samples = int(np.ceil(r/num_processes))
         steps = np.random.poisson(lam=t, size=num_samples)
@@ -197,12 +187,8 @@ def approx_hkpr_mp(Net, subset, t, f, eps, K='bound', method='rw', verbose=False
         collect_samples.put(approxhkpr_samples)
 
     #set up a list of processes
-    if method == 'mm':
-        processes = [mp.Process(target=generate_samples_mm, args=(collect_samples,))
-                     for x in range(num_processes)]
-    else:
-        processes = [mp.Process(target=generate_samples, args=(collect_samples,))
-                     for x in range(num_processes)]
+    processes = [mp.Process(target=generate_samples, args=(collect_samples,))
+                 for x in range(num_processes)]
 
     #run processes
     for p in processes:
