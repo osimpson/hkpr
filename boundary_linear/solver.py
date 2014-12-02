@@ -498,11 +498,11 @@ def greens_solver(Net, boundary_vec, subset, eps, gamma, verbose=False):
     ts = np.random.randint(1, int(N)+1, size=int(np.ceil(r)))
     for i in xrange(int(r)):
         j = ts[i]
-        xS += approx_hkpr_mp(Net, subset, j*gamma, b2, eps, verbose=verbose)
+        xS += (1/eps)*approx_hkpr_mp(Net, subset, j*gamma, b2, eps, verbose=verbose)
 
     DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     DS_minushalf = np.linalg.inv(DS)**(0.5)
-    return (T/r)*np.dot(xS, DS_minushalf)
+    return (1/r)*np.dot(xS, DS_minushalf)
 
 def err_RSRS_apprhkpr(Net, boundary_vec, subset, eps, gamma):
     """
