@@ -328,7 +328,7 @@ def local_cluster_hkpr_mincheeg(Net, start_node, target_size=None,
     if approx == 'matmult':
         dn_heat_val = approx_hkpr_matmult(Net, t, seed_vec=seed_vec, eps=eps, verbose=False, normalized=True)
     elif approx == 'rw':
-        dn_heat_val = approx_hkpr_seed(Net, t, start_node, eps=eps, verbose=False, normalized=True)
+        dn_heat_val = approx_hkpr_seed_mp(Net, t, start_node, eps=eps, verbose=False, normalized=True)
     else:
         #Net must be a Localnetwork
         dn_heat_val = Net.exp_hkpr(t, seed_vec=seed_vec, normalized=True)
