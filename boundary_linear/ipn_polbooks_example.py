@@ -136,4 +136,4 @@ boundary_vec_pb = np.array([[ 38.09847577253854922219],
        [  0.                    ]])
 
 
-b2_pb = solver.compute_b2(dolphins, boundary_vec, subset)
+b2_pb = solver.compute_b2(polbooks, boundary_vec_pb, subset_pb)
