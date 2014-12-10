@@ -72,4 +72,3 @@ boundary_vec = np.array([[  0.                    ],
        [  0.                    ]])
 
 b2 = solver.compute_b2(dolphins, boundary_vec, subset)
-
