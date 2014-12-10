@@ -205,8 +205,9 @@ def approx_hkpr_mp(Net, subset, t, f, eps, K='mean', verbose=False):
     L = Net.normalized_laplacian()
     LS = Net.restricted_mat
     # scale = 1./np.exp(t*0.03) #for dolphins
-    # scale = 1./np.exp(t*0.077) #for polbooks?
-    scale = 1.0
+    # scale = 1./np.exp(t*0.266) #for polbooks?
+    scale = 1./np.exp(t*0.315) #for adjnoun?
+    # scale = 1.0
     approxhkpr = (approxhkpr/r)*scale
 
     indx = [Net.node_to_index[s] for s in subset]
@@ -485,12 +486,14 @@ def greens_solver(Net, boundary_vec, subset, eps, gamma, K='mean', verbose=False
     """
     s = len(subset)
     T = (s**3)*(np.log((s**3)*(1./gamma)))
+    T_thresh = (s**3)*(np.log(1./gamma))
     N = T/gamma
     r = gamma**(-2)*(np.log(s) + np.log(1/gamma))
     if verbose:
         print 'eps', eps
         print 'gamma', gamma
         print 'T', T
+        print 'T_thresh', T_thresh
         print 'N', N
         print 'r', r
 
@@ -499,7 +502,11 @@ def greens_solver(Net, boundary_vec, subset, eps, gamma, K='mean', verbose=False
     ts = np.random.randint(1, int(N)+1, size=int(np.ceil(r)))
     for i in xrange(int(r)):
         j = ts[i]
-        xS += approx_hkpr_mp(Net, subset, j*gamma, b2, eps, K=K)
+        if j*gamma < T_thresh:
+            xS += approx_hkpr_mp(Net, subset, j*gamma, b2, eps, K=K)
+        #otherwise this vector doesn't contribute
+        else:
+            pass
 
     DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     DS_minushalf = np.linalg.inv(DS)**(0.5)
