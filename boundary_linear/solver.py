@@ -62,7 +62,7 @@ def approx_hkpr(Net, subset, t, f, K, eps, verbose=False):
         K = float("infinity")
 
     if verbose:
-        print 'r: ', r
+        print 'R: ', r
         print 'expected number of random walk steps: ', t
         print 'K: ', K
 
@@ -96,7 +96,7 @@ def approx_hkpr(Net, subset, t, f, K, eps, verbose=False):
     return approxhkpr[:,indx]
 
 
-def approx_hkpr_mp(Net, subset, t, f, eps, K='bound', verbose=False):
+def approx_hkpr_mp(Net, subset, t, f, eps, K='mean', verbose=False):
     """
     An implementation of the ApproxHKPR algorithm using random walks.
     Use multiprocessing to launch random walks in parallel
@@ -146,7 +146,7 @@ def approx_hkpr_mp(Net, subset, t, f, eps, K='bound', verbose=False):
         K = float("infinity")
 
     if verbose:
-        print 'r: ', r
+        print 'R: ', r
         print 'expected number of random walk steps: ', t
         print 'K: ', K
 
@@ -200,7 +200,14 @@ def approx_hkpr_mp(Net, subset, t, f, eps, K='bound', verbose=False):
     #get process results from output queue
     cum_samples = [collect_samples.get() for p in processes]
     approxhkpr = sum(cum_samples)
-    approxhkpr = approxhkpr/r
+
+    #scale
+    L = Net.normalized_laplacian()
+    LS = Net.restricted_mat
+    # scale = 1./np.exp(t*0.03) #for dolphins
+    # scale = 1./np.exp(t*0.077) #for polbooks?
+    scale = 1.0
+    approxhkpr = (approxhkpr/r)*scale
 
     indx = [Net.node_to_index[s] for s in subset]
     return approxhkpr[:,indx]
@@ -304,6 +311,7 @@ def restricted_solution_riemann(Net, boundary_vec, subset, gamma, verbose=False)
         the restricted solution vector xS over the nodes of the subset
     """
     s = len(subset)
+    b1 = compute_b1(Net, boundary_vec, subset)
     T = (s**3)*(np.log((s**3)*(1./gamma)))
     N = T/gamma
     if verbose:
@@ -312,7 +320,6 @@ def restricted_solution_riemann(Net, boundary_vec, subset, gamma, verbose=False)
         print 'N', N
 
     xS = np.zeros((s,1))
-    b1 = compute_b1(Net, boundary_vec, subset)
     for j in range(1, int(N)+1):
         xS += gamma*np.dot(Net.heat_kernel_symm(subset, j*gamma), b1)
 
@@ -403,16 +410,12 @@ def greens_solver_exphkpr_riemann(Net, boundary_vec, subset, gamma, verbose=Fals
         print 'N', N
 
     b2 = compute_b2(Net, boundary_vec, subset)
-    # _b2_ = np.sum(b2)
-    # b2_unit = b2/_b2_
     xS = np.zeros((1,s))
     for j in range(1, int(N)+1):
-        # xS += Net.exp_hkpr(subset, j*eps, b2_unit)
         xS += gamma*Net.exp_hkpr(subset, j*gamma, b2)
 
     DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     DS_minushalf = np.linalg.inv(DS)**(0.5)
-    # return np.dot(xS, DS_minushalf)*_b2_
     return np.dot(xS, DS_minushalf)
 
 
@@ -444,8 +447,6 @@ def greens_solver_exphkpr(Net, boundary_vec, subset, gamma, verbose=False):
         print 'r', r
 
     b2 = compute_b2(Net, boundary_vec, subset)
-    # _b2_ = np.sum(b2)
-    # b2_unit = b2/_b2_
     xS = np.zeros((1,s))
     # ts = np.random.randint(1, int(N)+1, size=int(np.ceil(r)))
     for i in range(int(r)):
@@ -470,7 +471,7 @@ def err_RSRS_exphkpr(Net, boundary_vec, subset, gamma):
     return max(0, np.linalg.norm(xS_true-xS_sample) - allowable_err)
 
 
-def greens_solver(Net, boundary_vec, subset, eps, gamma, K='bound', verbose=False):
+def greens_solver(Net, boundary_vec, subset, eps, gamma, K='mean', verbose=False):
     """
     Full Green's solver algorithm with Dirichlet heat kernel pagerank approximation.
 
@@ -498,11 +499,11 @@ def greens_solver(Net, boundary_vec, subset, eps, gamma, K='bound', verbose=Fals
     ts = np.random.randint(1, int(N)+1, size=int(np.ceil(r)))
     for i in xrange(int(r)):
         j = ts[i]
-        xS += (1/eps)*approx_hkpr_mp(Net, subset, j*gamma, b2, eps, K=K, verbose=verbose)
+        xS += approx_hkpr_mp(Net, subset, j*gamma, b2, eps, K=K)
 
     DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     DS_minushalf = np.linalg.inv(DS)**(0.5)
-    return (1/r)*np.dot(xS, DS_minushalf)
+    return (T/r)*np.dot(xS, DS_minushalf)
 
 def err_RSRS_apprhkpr(Net, boundary_vec, subset, eps, gamma):
     """
