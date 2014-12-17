@@ -331,6 +331,7 @@ def local_cluster_hkpr_mincheeg(Net, start_node, target_size=None,
         dn_heat_val = approx_hkpr_seed_mp(Net, t, start_node, eps=eps, verbose=False, normalized=True)
     else:
         #Net must be a Localnetwork
+        seed_vec = indicator_vector(Net, start_node)
         dn_heat_val = Net.exp_hkpr(t, seed_vec=seed_vec, normalized=True)
 
     print 'performing a sweep...'
@@ -348,15 +349,15 @@ def local_cluster_hkpr_mincheeg(Net, start_node, target_size=None,
     for j in range(len(rank)):
         sweep_set.append(rank[j])
         # vol_ach = Net.volume(subset=sweep_set) #volume of sweep set
-	vol_ach += Net.graph.degree(rank[j])
+        vol_ach += Net.graph.degree(rank[j])
         if vol_ach > 2*target_vol:
            break
         # cheeg_ach = Net.cheeger_ratio(sweep_set) #cheeger ratio of sweep set
-	#calculate edge boundary
+        #calculate edge boundary
         for nb in Net.graph.neighbors(rank[j]):
-	    if nb in sweep_set:
-		edge_bound_ach = edge_bound_ach - 1
-	    elif nb not in sweep_set:
+            if nb in sweep_set:
+                edge_bound_ach = edge_bound_ach - 1
+            elif nb not in sweep_set:
                 edge_bound_ach += 1
         cheeg_ach = float(edge_bound_ach)/vol_ach
         if cheeg_ach < min_cheeg:
@@ -371,7 +372,7 @@ def local_cluster_hkpr_mincheeg(Net, start_node, target_size=None,
         else:
             sweep_heat_vals[nd] = 0
 
-    return sweep_heat_vals, best_vol, min_cheeg
+    return min_sweep, sweep_heat_vals, best_vol, min_cheeg
 
 
 def local_cluster_pr(Net, start_node, target_cheeg=None):
