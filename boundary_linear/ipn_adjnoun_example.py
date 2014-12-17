@@ -122,4 +122,4 @@ boundary_vec_an = np.array([[  0.                    ],
        [  8.11880751452148352598],
        [ 12.11504668247319749241]])
 
-b2_an = solver.compute_b2(an, boundary_vec_an, subset_an)
+b2_an = solver.compute_b2(adjnoun, boundary_vec_an, subset_an)
