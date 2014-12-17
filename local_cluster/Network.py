@@ -240,12 +240,12 @@ class Localnetwork(Network):
         """
         If full network is small enough, can initialize it as a Localnetwork.
 
-	example use:
-	dolphins = Network.Localnetwork.fullgraph(gml_file="dolphins.gml")
+        example use:
+        dolphins = Network.Localnetwork.fullgraph(gml_file="dolphins.gml")
         """
-	network = Network(gml_file=gml_file, netx=netx, edge_list=edge_list)
-	subset = network.graph.nodes()
-	return cls(network, subset)
+        network = Network(gml_file=gml_file, netx=netx, edge_list=edge_list)
+        subset = network.graph.nodes()
+        return cls(network, subset)
 
 
     def laplacian_combo(self):
@@ -276,7 +276,7 @@ class Localnetwork(Network):
 
         Output:
             a dictionary of node, vector values
- 
+
         >>> test = dolphins.exp_hkpr(t, seed_vec)
         >>> test == {2: 0.1666666666666512, 37: 0.16666666666665114, 53: 0.1666666666666512, 61: 0.50000000000004707}
 	True
