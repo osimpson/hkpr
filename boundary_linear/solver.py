@@ -107,10 +107,7 @@ def approx_hkpr_err_unit(true, appr, eps):
     return err
 
 def approx_hkpr_err(true, appr, f, eps):
-    return max(0, approx_hkpr_err_unit(true, appr, eps) - np.linalg.norm(f, axis=1))
-
-def approx_hkpr_err_1norm(true, appr, f, eps):
-    return max(0, approx_hkpr_err_unit(true, appr, eps) - np.linalg.norm(f, ord=1, axis=1))
+    return max(0, approx_hkpr_err_unit(true, appr, eps) - np.sum(f))
 
 
 #####################################################################
