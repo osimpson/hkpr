@@ -10,98 +10,13 @@ np.set_printoptions(precision=20)
 ### Computing heat kernel
 #####################################################################
 
-
-def approx_hkpr(Net, subset, t, f, K, eps, verbose=False):
-    """
-    An implementation of the ApproxHKPR algorithm using random walks.
-
-    Parameters:
-        subset, [list] the subset over which we compute
-        t, [float] temperature parameter
-        f, [nparray of shape (1,s)] the seed vector
-        eps, [float < 1.0] desired error parameter
-
-    Output:
-        Dirichlet heat kernel pagerank f_S H_t
-    """
-    #initialize 0-vector of size n
-    n = Net.size
-    approxhkpr = np.zeros((1,n))
-
-    #create distribution vectors
-    # f_plus = np.zeros(n)
-    # f_minus = np.zeros(n)
-    # for i in range(n):
-    #     if f[0][i] > 0.0:
-    #         f_plus[i] = f[0][i]
-    #     elif f[0][i] < 0.0:
-    #         f_minus[i] = -f[0][i]
-    # if np.sum(f_plus) > 0:
-    #     _f_p = np.sum(f_plus)
-    #     f_p = f_plus/_f_p
-    # else:
-    #     f_p = None
-    # if np.sum(f_minus) > 0:
-    #     _f_m = np.sum(f_minus)
-    #     f_m = f_minus/_f_m
-    # else:
-    #     f_m = None
-    _f_ = np.sum(f)
-    f_unit = f/_f_
-    f_unit = f_unit.reshape(f_unit.shape[1],)
-
-    r = (16.0/eps**3)*np.log(n)
-    # r = (16.0/eps**2)*np.log(n)
-    # r = (16.0/eps)*np.log(n)
-
-    if K == 'bound':
-        K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
-    elif K == 'mean':
-        K = 2*t
-    elif K == 'unlim':
-        K = float("infinity")
-
-    if verbose:
-        print 'R: ', r
-        print 'expected number of random walk steps: ', t
-        print 'K: ', K
-
-    # if f_p is not None:
-    #     for i in range(int(r)):
-    #         #positive part
-    #         start_node = draw_node_from_dist(Net, f_p, subset=subset)
-    #         k = np.random.poisson(lam=t)
-    #         k = int(min(k,K))
-    #         v = Net.random_walk_seed(k, start_node, verbose=False)
-    #         approxhkpr[0][Net.node_to_index[v]] += _f_p
-    #     approxhkpr = approxhkpr/r
-    # if f_m is not None:
-    #     for i in range(int(r)):
-    #         #negative part
-    #         start_node = draw_node_from_dist(Net, f_m, subset=subset)
-    #         k = np.random.poisson(lam=t)
-    #         k = int(min(k,K))
-    #         v = Net.random_walk_seed(k, start_node, verbose=False)
-    #         approxhkpr[0][Net.node_to_index[v]] -= _f_m
-    #     approxhkpr = approxhkpr/r
-    for i in range(int(r)):
-        start_node = draw_node_from_dist(Net, f_unit, subset=subset)
-        k = np.random.poisson(lam=t)
-        k = int(min(k,K))
-        v = Net.random_walk_seed(k, start_node, verbose=False)
-        approxhkpr[0][Net.node_to_index[v]] += _f_
-    approxhkpr = approxhkpr/r
-
-    indx = [Net.node_to_index[s] for s in subset]
-    return approxhkpr[:,indx]
-
-
-def approx_hkpr_mp(Net, subset, t, f, eps, K='mean', verbose=False):
+def approx_hkpr(Net, subset, t, f, eps, K='mean', verbose=False):
     """
     An implementation of the ApproxHKPR algorithm using random walks.
     Use multiprocessing to launch random walks in parallel
 
     Parameters:
+        Net, [Network] the network object
         subset, [list] the subset over which we compute
         t, [float] temperature parameter
         f, [nparray of shape (1,s)] the seed vector
@@ -112,31 +27,11 @@ def approx_hkpr_mp(Net, subset, t, f, eps, K='mean', verbose=False):
     """
     n = Net.size
 
-    #create distribution vectors
-    # f_plus = np.zeros(n)
-    # f_minus = np.zeros(n)
-    # for i in range(n):
-    #     if f[0][i] > 0.0:
-    #         f_plus[i] = f[0][i]
-    #     elif f[0][i] < 0.0:
-    #         f_minus[i] = -f[0][i]
-    # if np.sum(f_plus) > 0:
-    #     _f_p = np.sum(f_plus)
-    #     f_p = f_plus/_f_p
-    # else:
-    #     f_p = None
-    # if np.sum(f_minus) > 0:
-    #     _f_m = np.sum(f_minus)
-    #     f_m = f_minus/_f_m
-    # else:
-    #     f_m = None
     _f_ = np.sum(f)
     f_unit = f/_f_
     f_unit = f_unit.reshape(f_unit.shape[1],)
 
     r = (16.0/eps**3)*np.log(n)
-    # r = (16.0/eps**2)*np.log(n)
-    # r = (16.0/eps)*np.log(n)
 
     if K == 'bound':
         K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
@@ -149,25 +44,6 @@ def approx_hkpr_mp(Net, subset, t, f, eps, K='mean', verbose=False):
         print 'R: ', r
         print 'expected number of random walk steps: ', t
         print 'K: ', K
-
-    # if f_p is not None:
-    #     for i in range(int(r)):
-    #         #positive part
-    #         start_node = draw_node_from_dist(Net, f_p, subset=subset)
-    #         k = np.random.poisson(lam=t)
-    #         k = int(min(k,K))
-    #         v = Net.random_walk_seed(k, start_node, verbose=False)
-    #         approxhkpr[0][Net.node_to_index[v]] += _f_p
-    #     approxhkpr = approxhkpr/r
-    # if f_m is not None:
-    #     for i in range(int(r)):
-    #         #negative part
-    #         start_node = draw_node_from_dist(Net, f_m, subset=subset)
-    #         k = np.random.poisson(lam=t)
-    #         k = int(min(k,K))
-    #         v = Net.random_walk_seed(k, start_node, verbose=False)
-    #         approxhkpr[0][Net.node_to_index[v]] -= _f_m
-    #     approxhkpr = approxhkpr/r
 
     #split up the sampling over all processors and collect in a queue
     collect_samples = mp.Queue()
@@ -203,10 +79,12 @@ def approx_hkpr_mp(Net, subset, t, f, eps, K='mean', verbose=False):
 
     #scale
     L = Net.normalized_laplacian()
-    LS = Net.restricted_mat
+    LS = Net.restricted_mat(L, subset, subset)
+    lam_1 = sorted(np.linalg.eigvals(LS))[0]
+    scale = 1./np.exp(t*lam_1)
     # scale = 1./np.exp(t*0.03) #for dolphins
     # scale = 1./np.exp(t*0.266) #for polbooks?
-    scale = 1./np.exp(t*0.315) #for adjnoun?
+    # scale = 1./np.exp(t*0.315) #for adjnoun?
     # scale = 1.0
     approxhkpr = (approxhkpr/r)*scale
 
@@ -238,8 +116,7 @@ def approx_hkpr_err(true, appr, f, eps):
     return max(0, approx_hkpr_err_unit(true, appr, eps) - np.linalg.norm(f, axis=1))
 
 def approx_hkpr_err_1norm(true, appr, f, eps):
-    return max(0, approx_hkpr_err_unit(true, appr, eps) - np.linalg.norm(f,
-ord=1, axis=1))
+    return max(0, approx_hkpr_err_unit(true, appr, eps) - np.linalg.norm(f, ord=1, axis=1))
 
 
 #####################################################################
@@ -281,9 +158,9 @@ def restricted_solution(Net, boundary_vec, subset):
     as defined in Theorem 1
 
     Parameters:
-        Net, the Network Network (graph)
-        boundary_vec, a vector over the nodes of the graph with non-empty support
-        subset, a list of nodes in V\supp(boundary_vec)
+        Net, [Network] the network object
+        boundary_vec, [nparray of shape (n,1)] a vector over the nodes of the graph with non-empty support
+        subset, [list] the subset of nodes over which we compute
 
     Output:
         the restricted solution vector xS over the nodes of the subset
@@ -304,9 +181,10 @@ def restricted_solution_riemann(Net, boundary_vec, subset, gamma, verbose=False)
     \H_t = exp{-t*(\L)_S}
 
     Parameters:
-        Net, the Network Network (graph)
-        boundary_vec, a vector over the nodes of the graph with non-empty support
-        subset, a list of nodes in V\supp(boundary_vec)
+        Net, [Network] the network object
+        boundary_vec, [nparray of shape (n,1)] a vector over the nodes of the graph with non-empty support
+        subset, [list] the subset of nodes over which we compute
+        gamma, [float] the solver error parameter
 
     Output:
         the restricted solution vector xS over the nodes of the subset
@@ -345,9 +223,10 @@ def restricted_solution_riemann_sample(Net, boundary_vec, subset, gamma, verbose
     \H_t = exp{-t*(\L)_S}
 
     Parameters:
-        Net, the Network Network (graph)
-        boundary_vec, a vector over the nodes of the graph with non-empty support
-        subset, a list of nodes in V\supp(boundary_vec)
+        Net, [Network] the network object
+        boundary_vec, [nparray of shape (n,1)] a vector over the nodes of the graph with non-empty support
+        subset, [list] the subset of nodes over which we compute
+        gamma, [float] the solver error parameter
 
     Output:
         the restricted solution vector xS over the nodes of the subset
@@ -363,8 +242,6 @@ def restricted_solution_riemann_sample(Net, boundary_vec, subset, gamma, verbose
         print 'r', r
 
     b1 = compute_b1(Net, boundary_vec, subset)
-    # _b1_ = np.sum(b1)
-    # b1_unit = b1/_b1_
     xS = np.zeros((s,1))
     for i in xrange(int(r)):
         j = np.random.randint(int(N))+1
@@ -395,9 +272,10 @@ def greens_solver_exphkpr_riemann(Net, boundary_vec, subset, gamma, verbose=Fals
     \H_t = exp{-t*(\L)_S}
 
     Parameters:
-        Net, the Network Network (graph)
-        boundary_vec, a vector over the nodes of the graph with non-empty support
-        subset, a list of nodes in V\supp(boundary_vec)
+        Net, [Network] the network object
+        boundary_vec, [nparray of shape (n,1)] a vector over the nodes of the graph with non-empty support
+        subset, [list] the subset of nodes over which we compute
+        gamma, [float] the solver error parameter
 
     Output:
         the restricted solution vector xS over the nodes of the subset
@@ -430,31 +308,44 @@ def greens_solver_exphkpr(Net, boundary_vec, subset, gamma, verbose=False):
     \H_t = exp{-t*(\L)_S}
 
     Parameters:
-        Net, the Network Network (graph)
-        boundary_vec, a vector over the nodes of the graph with non-empty support
-        subset, a list of nodes in V\supp(boundary_vec)
+        Net, [Network] the network object
+        boundary_vec, [nparray of shape (n,1)] a vector over the nodes of the graph with non-empty support
+        subset, [list] the subset of nodes over which we compute
+        gamma, [float] the solver error parameter
 
     Output:
         the restricted solution vector xS over the nodes of the subset
     """
     s = len(subset)
     T = (s**3)*(np.log((s**3)*(1./gamma)))
+    # T_thresh = (s**3)*(np.log(1./eps))
+    T_thresh = float('infinity')
     N = T/gamma
     r = gamma**(-2)*(np.log(s) + np.log(1/gamma))
     if verbose:
         print 'gamma', gamma
         print 'T', T
+        print 'T_thresh', T_thresh
         print 'N', N
         print 'r', r
 
     b2 = compute_b2(Net, boundary_vec, subset)
     xS = np.zeros((1,s))
-    # ts = np.random.randint(1, int(N)+1, size=int(np.ceil(r)))
+    ts = np.random.randint(1, int(N)+1, size=int(np.ceil(r)))
+    pos_samples = 0
+    zero_samples = 0
     for i in range(int(r)):
-        # j = ts[i]
-        j = np.random.randint(int(N))+1
-        xS += Net.exp_hkpr(subset, j*gamma, b2)
+        j = ts[i]
+        if j*gamma < T_thresh:
+            pos_samples += 1
+            xS += Net.exp_hkpr(subset, j*gamma, b2)
+        else:
+            zero_samples += 1
+            pass
 
+    if verbose:
+        print pos_samples, 'positive samples'
+        print zero_samples, 'zero samples'
     DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     DS_minushalf = np.linalg.inv(DS)**(0.5)
     return (T/r)*np.dot(xS, DS_minushalf)
@@ -477,16 +368,20 @@ def greens_solver(Net, boundary_vec, subset, eps, gamma, K='mean', verbose=False
     Full Green's solver algorithm with Dirichlet heat kernel pagerank approximation.
 
     Parameters:
-        Net, the Network Network (graph)
-        boundary_vec, [nparray of size (n,1)] a vector over the nodes of the graph with non-empty support
-        subset, [list] a list of nodes in V\supp(boundary_vec)
+        Net, [Network] the network object
+        boundary_vec, [nparray of shape (n,1)] a vector over the nodes of the graph with non-empty support
+        subset, [list] the subset of nodes over which we compute
+        eps, [float] the heat kernel pagerank approximation error
+        gamma, [float] the solver error parameter
 
     Output:
         [nparray of size (1,s)] the restricted solution vector xS over the nodes of the subset
     """
     s = len(subset)
     T = (s**3)*(np.log((s**3)*(1./gamma)))
-    T_thresh = (s**3)*(np.log(1./gamma))
+    T_thresh = 1000
+    # T_thresh = (s**3)*(np.log(1./eps))
+    # T_thresh = float('infinity')
     N = T/gamma
     r = gamma**(-2)*(np.log(s) + np.log(1/gamma))
     if verbose:
@@ -500,14 +395,17 @@ def greens_solver(Net, boundary_vec, subset, eps, gamma, K='mean', verbose=False
     b2 = compute_b2(Net, boundary_vec, subset)
     xS = np.zeros((1,s))
     ts = np.random.randint(1, int(N)+1, size=int(np.ceil(r)))
+    pos_samples = 0
     for i in xrange(int(r)):
         j = ts[i]
         if j*gamma < T_thresh:
-            xS += approx_hkpr_mp(Net, subset, j*gamma, b2, eps, K=K)
+            pos_samples += 1
+            xS += approx_hkpr(Net, subset, j*gamma, b2, eps, K=K)
         #otherwise this vector doesn't contribute
         else:
             pass
-
+    if verbose:
+        print "number of positive samples:", pos_samples
     DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     DS_minushalf = np.linalg.inv(DS)**(0.5)
     return (T/r)*np.dot(xS, DS_minushalf)
@@ -523,5 +421,5 @@ def err_RSRS_apprhkpr(Net, boundary_vec, subset, eps, gamma):
     b1 = compute_b1(Net, boundary_vec, subset)
     b2 = compute_b2(Net, boundary_vec, subset)
     allowable_err = gamma*( np.linalg.norm(b1) + np.linalg.norm(xS_true) +
-np.linalg.norm(xS_rie) ) + eps*(np.linaglg.norm(b2, ord=1, axis=1))
+                            np.linalg.norm(xS_rie) ) + eps*(np.linaglg.norm(b2, ord=1, axis=1))
     return max(0, np.linalg.norm(xS_true-xS_sample) - allowable_err)
