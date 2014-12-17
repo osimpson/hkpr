@@ -10,7 +10,7 @@ np.set_printoptions(precision=20)
 ### Computing heat kernel
 #####################################################################
 
-def approx_hkpr(Net, subset, t, f, eps, K='mean', verbose=False):
+def approx_hkpr(Net, subset, t, f, eps, verbose=False):
     """
     An implementation of the ApproxHKPR algorithm using random walks.
     Use multiprocessing to launch random walks in parallel
@@ -32,13 +32,7 @@ def approx_hkpr(Net, subset, t, f, eps, K='mean', verbose=False):
     f_unit = f_unit.reshape(f_unit.shape[1],)
 
     r = (16.0/eps**3)*np.log(n)
-
-    if K == 'bound':
-        K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
-    elif K == 'mean':
-        K = 2*t
-    elif K == 'unlim':
-        K = float("infinity")
+    K = 2*t
 
     if verbose:
         print 'R: ', r
