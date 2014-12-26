@@ -1,6 +1,7 @@
 import networkx as nx
 import numpy as np
 from scipy.integrate import quad
+import scipy.misc
 import multiprocessing as mp
 from Network import *
 
@@ -9,6 +10,7 @@ np.set_printoptions(precision=20)
 #####################################################################
 ### Computing heat kernel
 #####################################################################
+
 
 def approx_hkpr(Net, subset, t, f, eps, verbose=False):
     """
@@ -36,7 +38,7 @@ def approx_hkpr(Net, subset, t, f, eps, verbose=False):
 
     if verbose:
         print 'R: ', r
-        print 'expected number of random walk steps: ', t
+        print 't: ', t
         print 'K: ', K
 
     #split up the sampling over all processors and collect in a queue
@@ -53,7 +55,8 @@ def approx_hkpr(Net, subset, t, f, eps, verbose=False):
             k = steps[i]
             k = int(min(k,K))
             v = Net.random_walk_seed(k, start_node)
-            approxhkpr_samples[0][Net.node_to_index[v]] += _f_
+            approxhkpr_samples[0][Net.node_to_index[v]] += 1.0
+
         collect_samples.put(approxhkpr_samples)
 
     #set up a list of processes
@@ -71,16 +74,7 @@ def approx_hkpr(Net, subset, t, f, eps, verbose=False):
     cum_samples = [collect_samples.get() for p in processes]
     approxhkpr = sum(cum_samples)
 
-    #scale
-    L = Net.normalized_laplacian()
-    LS = Net.restricted_mat(L, subset, subset)
-    lam_1 = sorted(np.linalg.eigvals(LS))[0]
-    scale = 1./np.exp(t*lam_1)
-    # scale = 1./np.exp(t*0.03) #for dolphins
-    # scale = 1./np.exp(t*0.266) #for polbooks?
-    # scale = 1./np.exp(t*0.315) #for adjnoun?
-    # scale = 1.0
-    approxhkpr = (approxhkpr/r)*scale
+    approxhkpr = approxhkpr*(_f_/r)
 
     indx = [Net.node_to_index[s] for s in subset]
     return approxhkpr[:,indx]
@@ -129,16 +123,8 @@ def compute_b1(Net, boundary_vec, subset):
 
 
 def compute_b2(Net, boundary_vec, subset):
-    DS = Net.restricted_mat(Net.deg_mat, subset, subset)
-    DS_minushalf = np.linalg.inv(DS)**(0.5)
-    boundS = Net.vertex_boundary(subset)
-    DboundS = Net.restricted_mat(Net.deg_mat, boundS, boundS)
-    DboundS_minushalf = np.linalg.inv(DboundS)**(0.5)
-    ASboundS = Net.restricted_mat(Net.adj_mat, subset, boundS)
-    _b = [Net.node_to_index[s] for s in boundS]
-    bboundS = boundary_vec[_b]
-
     b1 = compute_b1(Net, boundary_vec, subset)
+    DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     return np.dot(np.transpose(b1), DS**(0.5))
 
 
@@ -354,7 +340,7 @@ def err_RSRS_exphkpr(Net, boundary_vec, subset, gamma):
     return max(0, np.linalg.norm(xS_true-xS_sample) - allowable_err)
 
 
-def greens_solver(Net, boundary_vec, subset, eps, gamma, K='mean', verbose=False):
+def greens_solver(Net, boundary_vec, subset, eps, gamma, verbose=False):
     """
     Full Green's solver algorithm with Dirichlet heat kernel pagerank approximation.
 
@@ -370,7 +356,7 @@ def greens_solver(Net, boundary_vec, subset, eps, gamma, K='mean', verbose=False
     """
     s = len(subset)
     T = (s**3)*(np.log((s**3)*(1./gamma)))
-    T_thresh = 1000
+    T_thresh = 500
     # T_thresh = (s**3)*(np.log(1./eps))
     # T_thresh = float('infinity')
     N = T/gamma
@@ -387,11 +373,16 @@ def greens_solver(Net, boundary_vec, subset, eps, gamma, K='mean', verbose=False
     xS = np.zeros((1,s))
     ts = np.random.randint(1, int(N)+1, size=int(np.ceil(r)))
     pos_samples = 0
+    #scale
+    L = Net.normalized_laplacian()
+    LS = Net.restricted_mat(L, subset, subset)
+    lam1 = sorted(np.linalg.eigvals(LS))[0]
     for i in xrange(int(r)):
         j = ts[i]
         if j*gamma < T_thresh:
             pos_samples += 1
-            xS += approx_hkpr(Net, subset, j*gamma, b2, eps, K=K)
+            scale = np.exp(-(j*gamma)*lam1)
+            xS += approx_hkpr(Net, subset, j*gamma, b2, eps)*scale
         #otherwise this vector doesn't contribute
         else:
             pass
