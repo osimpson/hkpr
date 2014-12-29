@@ -12,7 +12,7 @@ np.set_printoptions(precision=20)
 #####################################################################
 
 
-def approx_hkpr(Net, subset, t, f, eps, verbose=False):
+def approx_dir_hkpr(Net, subset, t, f, eps, verbose=False):
     """
     An implementation of the ApproxHKPR algorithm using random walks.
     Use multiprocessing to launch random walks in parallel
@@ -28,6 +28,7 @@ def approx_hkpr(Net, subset, t, f, eps, verbose=False):
         epsilon-approximate Dirichlet heat kernel pagerank f_S H_t
     """
     n = Net.size
+    s = len(subset)
 
     _f_ = np.sum(f)
     f_unit = f/_f_
@@ -54,8 +55,9 @@ def approx_hkpr(Net, subset, t, f, eps, verbose=False):
             start_node = draw_node_from_dist(Net, f_unit, subset=subset)
             k = steps[i]
             k = int(min(k,K))
-            v = Net.random_walk_seed(k, start_node)
-            approxhkpr_samples[0][Net.node_to_index[v]] += 1.0
+            v = Net.dir_random_walk(k, start_node, subset)
+            if v is not None:
+                approxhkpr_samples[0][Net.node_to_index[v]] += 1.0
 
         collect_samples.put(approxhkpr_samples)
 
@@ -372,22 +374,13 @@ def greens_solver(Net, boundary_vec, subset, eps, gamma, verbose=False):
     b2 = compute_b2(Net, boundary_vec, subset)
     xS = np.zeros((1,s))
     ts = np.random.randint(1, int(N)+1, size=int(np.ceil(r)))
-    pos_samples = 0
-    #scale
-    L = Net.normalized_laplacian()
-    LS = Net.restricted_mat(L, subset, subset)
-    lam1 = sorted(np.linalg.eigvals(LS))[0]
     for i in xrange(int(r)):
         j = ts[i]
         if j*gamma < T_thresh:
-            pos_samples += 1
-            scale = np.exp(-(j*gamma)*lam1)
-            xS += approx_hkpr(Net, subset, j*gamma, b2, eps)*scale
+            xS += approx_dir_hkpr(Net, subset, j*gamma, b2, eps)
         #otherwise this vector doesn't contribute
         else:
             pass
-    if verbose:
-        print "number of positive samples:", pos_samples
     DS = Net.restricted_mat(Net.deg_mat, subset, subset)
     DS_minushalf = np.linalg.inv(DS)**(0.5)
     return (T/r)*np.dot(xS, DS_minushalf)

@@ -231,6 +231,38 @@ class Network(object):
         return cur_node
 
 
+    def dir_random_walk(self, k, start_node, subset, verbose=False):
+        """
+        Outputs the last node visited in a k-step Dirichlet random walk on the graph
+        starting from start_node.
+
+        If random walk leaves the subset, None is returned
+        """
+
+        def random_neighbor(node):
+            neighbs = self.graph[node].keys()
+            d = len(neighbs)
+            tmp = np.random.random()
+            for j in range(d):
+                if tmp < (j+1)*(1./d):
+                    return self.graph[node].keys()[j]
+
+        cur_node = start_node
+        if verbose:
+            print 'start:', cur_node
+        for steps in xrange(k):
+            next_node = random_neighbor(cur_node)
+            if next_node in subset:
+                cur_node = next_node
+                if verbose:
+                    print cur_node
+            else:
+                return None
+        if verbose:
+            print 'stop:', cur_node
+        return cur_node
+
+
 #####################################################################
 ### matrix functions
 #####################################################################
