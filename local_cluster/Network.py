@@ -33,6 +33,69 @@ class Network(object):
             self.index_to_node[i] = nd
             i += 1
 
+        #matrices
+        self.adj_mat = np.array(nx.to_numpy_matrix(self.graph, nodelist=sorted(self.graph.nodes())))
+        d = np.sum(self.adj_mat, axis=1)
+        self.deg_vec = np.zeros(self.size)
+        self.deg_mat = np.zeros((self.size, self.size))
+        for n in self.graph.nodes():
+            i = self.node_to_index[n]
+            self.deg_vec[i] = d[i]
+            self.deg_mat[i,i] = d[i]
+
+
+    def combinatorial_laplacian(self):
+        return self.deg_mat - self.adj_mat
+
+
+    def normalized_laplacian(self):
+        D_minushalf = np.linalg.inv(self.deg_mat)**(0.5)
+        L = np.dot(D_minushalf, np.dot(self.combinatorial_laplacian(), D_minushalf))
+        return L
+
+
+    def walk_mat(self):
+        return np.dot(np.linalg.inv(self.deg_mat), self.adj_mat)
+
+
+    def laplace_operator(self):
+        return np.eye(self.size) - self.walk_mat()
+
+
+    def heat_kernel(self, t):
+        """
+        Exact computation of H_t = exp{-t(I-P)} with the matrix exponential.
+        Returns a numpy matrix.
+        """
+        # \Delta = I - P
+        laplace = self.laplace_operator()
+
+        # heat kernel
+        return linalg.expm(-t*laplace)
+
+
+    def exp_hkpr(self, t, start_node, normalized=False):
+        """
+        Exact computation of hkpr(t,f) = f^T H_t.
+
+        Parameters:
+            t, temperature parameters
+            seed_vec, the preference vector
+            normalized, if set to true, output vector values normalized by
+                node degree
+
+        Output:
+            a dictionary of node, vector values
+        """
+        f = indicator_vector(self, node=start_node)
+        heat_ker = self.heat_kernel(t)
+        hkpr = np.dot(np.transpose(f), heat_ker)
+
+        if normalized:
+            return get_normalized_node_vector_values(self, hkpr)
+        else:
+            return get_node_vector_values(self, hkpr)
+
 
     def volume(self, subset=None):
         """
@@ -212,130 +275,6 @@ class Network(object):
             return pr
 
 
-class Localnetwork(Network):
-    """
-    A subclass that assumes a smaller subset of nodes and computations
-    restricted to the induced subgraph.
-    """
-
-    def __init__(self, network, subset):
-        netxsg = network.graph.subgraph(subset)
-        Network.__init__(self, netx=netxsg)
-        self.adj_mat = nx.to_numpy_matrix(self.graph, nodelist=sorted(self.graph.nodes()))
-        d = np.sum(self.adj_mat, axis=1)
-        self.deg_vec = np.zeros(self.size)
-        self.deg_mat = np.zeros((self.size, self.size))
-        for n in self.graph.nodes():
-            i = self.node_to_index[n]
-            self.deg_vec[i] = d[i,0]
-            self.deg_mat[i,i] = d[i,0]
-        # for i in range(self.size):
-        #     self.deg_vec[i] = d[i,0]
-        #     self.deg_mat[i,i] = d[i,0]
-        self.walk_mat = np.dot(np.linalg.inv(self.deg_mat), self.adj_mat)
-
-
-    @classmethod
-    def fullgraph(cls, gml_file=None, netx=None, edge_list=None):
-        """
-        If full network is small enough, can initialize it as a Localnetwork.
-
-        example use:
-        dolphins = Network.Localnetwork.fullgraph(gml_file="dolphins.gml")
-        """
-        network = Network(gml_file=gml_file, netx=netx, edge_list=edge_list)
-        subset = network.graph.nodes()
-        return cls(network, subset)
-
-
-    def laplacian_combo(self):
-        return self.deg_mat - self.adj_mat
-
-
-    def heat_ker(self, t):
-        """
-        Exact computation of H_t = exp{-t(I-P)} with the matrix exponential.
-        Returns a numpy matrix.
-        """
-        # \Delta = I - P
-        laplace = np.eye(self.size) - self.walk_mat
-
-        # heat kernel
-        return linalg.expm(-t*laplace)
-
-
-    def exp_hkpr(self, t, seed_vec, normalized=False):
-        """
-        Exact computation of hkpr(t,f) = f^T H_t.
-
-        Parameters:
-            t, temperature parameters
-            seed_vec, the preference vector
-            normalized, if set to true, output vector values normalized by
-                node degree
-
-        Output:
-            a dictionary of node, vector values
-
-        >>> test = dolphins.exp_hkpr(t, seed_vec)
-        >>> test == {2: 0.1666666666666512, 37: 0.16666666666665114, 53: 0.1666666666666512, 61: 0.50000000000004707}
-	True
-        """
-        f = seed_vec
-        heat_ker = self.heat_ker(t)
-        hkpr = np.dot(np.transpose(f), heat_ker)
-
-        if normalized:
-            return get_normalized_node_vector_values(self, hkpr)
-        else:
-            return get_node_vector_values(self, hkpr)
-
-
-    # def random_walk(self, k, seed_vec=None, verbose=False):
-    #     """
-    #     Outputs the last node visited in a k-step random walk on the graph
-    #     using seed_vec as a starting distribution.
-
-    #     transition probability matrix-based.
-    #     """
-    #     if seed_vec is not None:
-    #         cur_node = draw_node_from_dist(self, seed_vec)
-    #         # cur_node = np.random.choice(self.graph.nodes(), p=seed_vec)
-    #     else:
-    #         # choose start node according to dv/vol(G)
-    #         total = sum(self.deg_vec)
-    #         p = self.deg_vec/total
-    #         cur_node = np.random.choice(self.graph.nodes(), p=p)
-    #     if verbose:
-    #         print 'start:', cur_node
-    #     for steps in range(k):
-    #         p = np.asarray(self.walk_mat)[self.node_to_index[cur_node]]
-    #         next_node = draw_node_from_dist(self, p)
-    #         # next_node = np.random.choice(self.graph.nodes(), p=p)
-    #         cur_node = next_node
-    #         if verbose:
-    #             print cur_node
-    #     if verbose:
-    #         print 'stop:', cur_node
-    #     return cur_node
-
-
-    # # TODO this needs to be checked
-    # def pagerank(self, seed_vec, alpha=0.85, normalized=False):
-    #     I = np.identity(self.size)
-    #     Z = 0.5*(I + self.walk_mat)
-    #     # lhs = I - (1.0-alpha)*Z
-    #     lhs = I - (1.0-alpha)*self.walk_mat
-    #     rhs = alpha*seed_vec
-
-    #     pr = np.linalg.solve(lhs, rhs)
-
-    #     if normalized:
-    #         return get_normalized_node_vector_values(self, pr)
-    #     else:
-    #         return get_node_vector_values(self, pr)
-
-
 def indicator_vector(Net, node=None):
     """
     Compute the indicator vector for the given network and node.
@@ -433,16 +372,3 @@ def draw_vec(self, dic, file_name, label_names=True):
         G.add_edge(edge)
 
     G.write_png(file_name, prog='neato')
-
-
-if __name__ == "__main__":
-    import doctest
-
-    dolphins_full = Network(GRAPH_DATASETS['dolphins'])
-    subset = [61, 2, 37, 53]
-    dolphins = Localnetwork(dolphins, subset)
-    node = dolphins_full.graph.nodes()[-1]
-    seed_vec = indicator_vector(dolphins, node)
-    t = 15.0
-
-    doctest.testmod(globs=dict(dolphins=dolphins, seed_vec=seed_vec, t=t))
