@@ -135,7 +135,10 @@ def approx_hkpr_seed_mp(Net, t, start_node, K=None, eps=0.01, verbose=False, nor
 
     if K is None:
         K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
-        # K = t
+    elif K == 'mean':
+        K = 2*t
+    elif K == 'unlim':
+        K = float("inf")
 
     if verbose:
         print 'r: ', r
@@ -197,22 +200,6 @@ def approx_hkpr_err(true, appr, eps):
         if comp_err > 0:
             err += comp_err
     return err
-
-
-# dolphins = Localnetwork.fullgraph(GRAPH_DATASETS['dolphins'])
-# node = dolphins.graph.nodes()[-1]
-# t = 30.0
-#
-# approx_hkpr = approx_hkpr_seed_mp(dolphins, t, node, verbose=True)
-# approx_vec = np.array(approx_hkpr.values())
-# print sum(approx_vec)
-#
-# seed_vec = indicator_vector(dolphins, node)
-# true_hkpr = dolphins.exp_hkpr(t, seed_vec)
-# true_vec = np.array(true_hkpr.values())
-# print sum(true_vec)
-#
-# print approx_hkpr_err(true_vec, approx_vec, 0.01)
 
 
 #####################################################################
@@ -332,7 +319,7 @@ def local_cluster_hkpr_mincheeg(Net, start_node, target_size=None,
     else:
         #Net must be a Localnetwork
         seed_vec = indicator_vector(Net, start_node)
-        dn_heat_val = Net.exp_hkpr(t, seed_vec=seed_vec, normalized=True)
+        dn_heat_val = Net.exp_hkpr(t, start_node, normalized=True)
 
     print 'performing a sweep...'
     #node ranking (this is a list of nodes!)
