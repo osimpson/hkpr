@@ -3,7 +3,10 @@ import numpy as np
 import pydot
 import operator
 import scipy
-from scipy import linalg
+from scipy import sparse
+from scipy.sparse import csc_matrix
+from scipy.sparse import lil_matrix
+from scipy.sparse import linalg
 
 execfile('/home/olivia/UCSD/projects/datasets/datasets.py')
 
@@ -34,32 +37,37 @@ class Network(object):
             i += 1
 
         #matrices
-        self.adj_mat = np.array(nx.to_numpy_matrix(self.graph, nodelist=sorted(self.graph.nodes())))
-        d = np.sum(self.adj_mat, axis=1)
-        self.deg_vec = np.zeros(self.size)
-        self.deg_mat = np.zeros((self.size, self.size))
+        self.adj_mat = csc_matrix(nx.to_numpy_matrix(self.graph, nodelist=sorted(self.graph.nodes())))
+        d = self.adj_mat.sum(axis=1)
+        # self.deg_vec = np.zeros(self.size)
+        # self.deg_mat = np.zeros((self.size, self.size))
+        self.deg_mat = lil_matrix((self.size, self.size))
+        self.deg_mat_inv = lil_matrix((self.size, self.size))
         for n in self.graph.nodes():
             i = self.node_to_index[n]
-            self.deg_vec[i] = d[i]
+            # self.deg_vec[i] = d[i]
             self.deg_mat[i,i] = d[i]
+            self.deg_mat_inv[i,i] = 1./d[i]
+        self.deg_mat = csc_matrix(self.deg_mat)
+        self.deg_mat_inv = csc_matrix(self.deg_mat_inv)
 
 
-    def combinatorial_laplacian(self):
-        return self.deg_mat - self.adj_mat
+    # def combinatorial_laplacian(self):
+    #     return self.deg_mat - self.adj_mat
 
 
-    def normalized_laplacian(self):
-        D_minushalf = np.linalg.inv(self.deg_mat)**(0.5)
-        L = np.dot(D_minushalf, np.dot(self.combinatorial_laplacian(), D_minushalf))
-        return L
+    # def normalized_laplacian(self):
+    #     D_minushalf = np.linalg.inv(self.deg_mat)**(0.5)
+    #     L = np.dot(D_minushalf, np.dot(self.combinatorial_laplacian(), D_minushalf))
+    #     return L
 
 
     def walk_mat(self):
-        return np.dot(np.linalg.inv(self.deg_mat), self.adj_mat)
+        return self.deg_mat_inv.dot(self.adj_mat)
 
 
     def laplace_operator(self):
-        return np.eye(self.size) - self.walk_mat()
+        return sparse.eye(self.size, format="csc") - self.walk_mat()
 
 
     def heat_kernel(self, t):
@@ -80,7 +88,7 @@ class Network(object):
 
         Parameters:
             t, temperature parameters
-            seed_vec, the preference vector
+            start_node, the seed node
             normalized, if set to true, output vector values normalized by
                 node degree
 
@@ -88,8 +96,9 @@ class Network(object):
             a dictionary of node, vector values
         """
         f = indicator_vector(self, node=start_node)
-        heat_ker = self.heat_kernel(t)
-        hkpr = np.dot(np.transpose(f), heat_ker)
+        heat_kernel = self.heat_kernel(t)
+        # hkpr = np.dot(np.transpose(f), heat_kernel)
+        hkpr = np.transpose(heat_kernel.transpose().dot(f))
 
         if normalized:
             return get_normalized_node_vector_values(self, hkpr)
