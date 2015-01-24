@@ -37,7 +37,13 @@ class Network(object):
             i += 1
 
         #matrices
-        self.adj_mat = csc_matrix(nx.to_numpy_matrix(self.graph, nodelist=sorted(self.graph.nodes())))
+        # try:
+        #     self.adj_mat = csc_matrix(nx.to_numpy_matrix(self.graph, nodelist=sorted(self.graph.nodes())))
+        # except MemoryError:
+        self.adj_mat = lil_matrix((self.size, self.size))
+        for node in self.graph.nodes():
+            for neighbor in self.graph.neighbors(node):
+                self.adj_mat[self.node_to_index[node], self.node_to_index[neighbor]] = 1.0
         d = self.adj_mat.sum(axis=1)
         # self.deg_vec = np.zeros(self.size)
         # self.deg_mat = np.zeros((self.size, self.size))
@@ -48,6 +54,7 @@ class Network(object):
             # self.deg_vec[i] = d[i]
             self.deg_mat[i,i] = d[i]
             self.deg_mat_inv[i,i] = 1./d[i]
+        self.adj_mat = csc_matrix(self.adj_mat)
         self.deg_mat = csc_matrix(self.deg_mat)
         self.deg_mat_inv = csc_matrix(self.deg_mat_inv)
 
