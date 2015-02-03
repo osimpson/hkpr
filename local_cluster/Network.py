@@ -232,12 +232,20 @@ class Network(object):
             print 'stop:', cur_node
         return cur_node
 
+
     def random_walk_seed_matmult(self, k, start_node):
         seed_vec = indicator_vector(self, start_node)
         prod = np.dot(seed_vec, self.walk_mat**k)
         dist = np.ravel(prod)
 
         return np.random.choice(self.graph.nodes(), p=dist)
+
+
+    def random_node(self):
+        # choose start node according to dv/vol(G)
+        total = sum(self.deg_vec)
+        p = self.deg_vec/total
+        cur_node = np.random.choice(self.graph.nodes(), p=p)
 
     # def random_walk(self, k, seed_vec=None, verbose=False):
     #     """
