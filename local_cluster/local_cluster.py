@@ -214,8 +214,8 @@ def approx_hkpr_seed_mp_dict(Net, t, start_node, K=None, eps=0.01, verbose=False
     """
     n = Net.size
 
-    # r = (16.0/eps**3)*np.log(n)
-    r = (16.0/eps**2)*np.log(n)
+    r = (16.0/eps**3)*np.log(n)
+    # r = (16.0/eps**2)*np.log(n)
     # r = (16.0/eps)*np.log(n)
     # r = (16.0/eps**2)*np.log(100)
 
@@ -275,25 +275,25 @@ def approx_hkpr_seed_mp_dict(Net, t, start_node, K=None, eps=0.01, verbose=False
         return approxhkpr
 
 
-def approx_hkpr_err(true, appr, eps):
-    """
-    Compute the error according to the definition of component-wise additive
-    and multiplicative error for approximate heat kernel pagerank vectors.
+# def approx_hkpr_err(true, appr, eps):
+#     """
+#     Compute the error according to the definition of component-wise additive
+#     and multiplicative error for approximate heat kernel pagerank vectors.
 
-    This function outputs the total error beyond what we allow.
-    """
-    if true.size != appr.size:
-        print 'vector dimensions do not match'
-        return
-    err = 0
-    for i in range(true.size):
-        if appr[i] == 0:
-            comp_err = true[i] - eps
-        else:
-            comp_err = (abs(true[i]-appr[i])) - (eps*true[i])
-        if comp_err > 0:
-            err += comp_err
-    return err
+#     This function outputs the total error beyond what we allow.
+#     """
+#     if true.size != appr.size:
+#         print 'vector dimensions do not match'
+#         return
+#     err = 0
+#     for i in range(true.size):
+#         if appr[i] == 0:
+#             comp_err = true[i] - eps
+#         else:
+#             comp_err = (abs(true[i]-appr[i])) - (eps*true[i])
+#         if comp_err > 0:
+#             err += comp_err
+#     return err
 
 
 def approx_hkpr_err_dict(true, appr, eps):
@@ -312,6 +312,31 @@ def approx_hkpr_err_dict(true, appr, eps):
         if comp_err > 0:
             err += comp_err
     return err
+
+
+def avg_l1(true, appr):
+    l1 = sum([np.abs(true[n]-appr[n]) if n in appr else true[n] for n in true])
+    return l1/len(true)
+
+
+def symmetric_difference(x, y):
+    """
+    Compute the symmetric difference of lists x, y
+    """
+    union = x[:]
+    union.extend(y)
+    intersection = [n for n in x if n in y]
+    return list(set(union) - set(intersection))
+
+def isim(x, y, k):
+    """
+    Compute the intersection distance for the top k ranked items.
+
+    Parameters:
+        x, y lists of ranked items
+        k, an integer
+    """
+    return (1.0/k) * sum([ (len(symmetric_difference(x[:i],y[:i]))*1.0) / (2*(i)) for i in range(1,k+1)])
 
 
 #####################################################################
