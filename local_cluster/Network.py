@@ -45,13 +45,13 @@ class Network(object):
             for neighbor in self.graph.neighbors(node):
                 self.adj_mat[self.node_to_index[node], self.node_to_index[neighbor]] = 1.0
         d = self.adj_mat.sum(axis=1)
-        # self.deg_vec = np.zeros(self.size)
+        self.deg_vec = np.zeros(self.size)
         # self.deg_mat = np.zeros((self.size, self.size))
         self.deg_mat = lil_matrix((self.size, self.size))
         self.deg_mat_inv = lil_matrix((self.size, self.size))
         for n in self.graph.nodes():
             i = self.node_to_index[n]
-            # self.deg_vec[i] = d[i]
+            self.deg_vec[i] = d[i]
             self.deg_mat[i,i] = d[i]
             self.deg_mat_inv[i,i] = 1./d[i]
         self.adj_mat = csc_matrix(self.adj_mat)
@@ -245,7 +245,8 @@ class Network(object):
         # choose start node according to dv/vol(G)
         total = sum(self.deg_vec)
         p = self.deg_vec/total
-        cur_node = np.random.choice(self.graph.nodes(), p=p)
+        return np.random.choice(self.graph.nodes(), p=p)
+
 
     # def random_walk(self, k, seed_vec=None, verbose=False):
     #     """
