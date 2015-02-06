@@ -343,7 +343,7 @@ def get_normalized_node_vector_values(Net, vec):
     return vals
 
 
-def draw_vec(self, vec, file_name, label_names=True):
+def draw_vec(Net, vec, file_name, label_names=True):
 
     G = pydot.Dot(graph_type='graph')
 
@@ -352,24 +352,24 @@ def draw_vec(self, vec, file_name, label_names=True):
     max_v = max(vec)
     norm_v = [(x-min_v)/(max_v-min_v) for x in vec]
 
-    for n in self.graph.nodes():
+    for n in Net.graph.nodes():
         if label_names:
             node = pydot.Node(str(n))
         else:
             node = pydot.Node("")
         node.set_style('filled')
-        color = 255 - (norm_v[self.node_to_index[n]]/max(norm_v)*255)
+        color = 255 - (norm_v[Net.node_to_index[n]]/max(norm_v)*255)
         node.set_fillcolor('#ff%02x%02x' % (color,color))
 
         G.add_node(node)
 
-    for (u,v) in self.graph.edges():
+    for (u,v) in Net.graph.edges():
         edge = pydot.Edge(str(u),str(v))
         G.add_edge(edge)
 
     G.write_png(file_name, prog='neato')
 
-def draw_vec(self, dic, file_name, label_names=True):
+def draw_vec(Net, dic, file_name, label_names=True):
 
     G = pydot.Dot(graph_type='graph')
 
@@ -381,7 +381,7 @@ def draw_vec(self, dic, file_name, label_names=True):
         norm_d[nd] = (dic[nd]-min_v)/(max_v-min_v)
 
     maxval = max(norm_d.values())
-    for n in self.graph.nodes():
+    for n in Net.graph.nodes():
         node = pydot.Node(str(n))
         node.set_style('filled')
         node.set_shape('circle')
@@ -392,8 +392,41 @@ def draw_vec(self, dic, file_name, label_names=True):
 
         G.add_node(node)
 
-    for (u,v) in self.graph.edges():
+    for (u,v) in Net.graph.edges():
         edge = pydot.Edge(str(u),str(v))
         G.add_edge(edge)
 
     G.write_png(file_name, prog='neato')
+
+def draw_cluster(Net, dic, start_node, file_name, label_names=True):
+
+    G = pydot.Dot(graph_type='graph')
+
+    # normalize range of vector values to map to a unit interval
+    min_v = min(dic.values())
+    max_v = max(dic.values())
+    norm_d = {}
+    for nd in dic:
+        norm_d[nd] = (dic[nd]-min_v)/(max_v-min_v)
+
+    maxval = max(norm_d.values())
+    for n in Net.graph.nodes():
+        node = pydot.Node(str(n))
+        node.set_style('filled')
+        node.set_shape('circle')
+        if not label_names:
+            node.set_label(" ")
+        if n is start_node:
+            node.set_fillcolor('black')
+        else:
+            color = 255 - (norm_d[n]/maxval*255)
+            node.set_fillcolor('#ff%02x%02x' % (color,color))
+
+        G.add_node(node)
+
+    for (u,v) in Net.graph.edges():
+        edge = pydot.Edge(str(u),str(v))
+        G.add_edge(edge)
+
+    G.write_png(file_name, prog='neato')
+
