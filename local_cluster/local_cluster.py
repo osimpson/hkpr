@@ -12,192 +12,6 @@ np.set_printoptions(precision=20)
 #####################################################################
 
 
-# def approx_hkpr_matmult(Net, t, seed_vec, num_trials=100, verbose=False, normalized=False):
-#     """
-#     Use matrix multiplication to estimate a heat kernel pagerank vector as the
-#     expected distribution of: fP^k with probability Pois(lam=t).
-
-#     Parameters:
-#         t, temperature parameter
-#         seed_vec, the vector f
-#         num_trials, number of independent experiments
-#         normalized, if set to true, output vector values normalized by
-#             node degree
-
-#     Output:
-#         a dictionary of node, vector values
-#     """
-#     n = Net.size
-#     k = np.random.poisson(lam=t)
-#     if verbose: print 'k', k, 'random walk steps'
-#     appr = np.dot(seed_vec, np.linalg.matrix_power(Net.walk_mat, k))
-#     for i in range(num_trials-1):
-#         k = np.random.poisson(lam=t)
-#         if verbose: print 'k', k, 'random walk steps'
-#         appr += np.dot(seed_vec, np.linalg.matrix_power(Net.walk_mat, k))
-#     appr = appr/r
-#     appr = np.array(appr)[0]
-
-#     if normalized:
-#         return get_normalized_node_vector_values(Net, appr)
-#     else:
-#         return get_node_vector_values(Net, appr)
-
-# def approx_matmult_rwk(Net, k, seed_vec=None, eps=0.01, verbose=False, normalized=False):
-#     """
-#     Tool for checking approximating fP^k with random walks of length k.
-#     """
-#     # initialize 0-vector of size n
-#     n = Net.size
-#     approxhkpr = np.zeros(n)
-
-#     # r = (16.0/eps**3)*np.log(n)
-#     r = (16.0/eps**2)*np.log(n)
-#     # r = (16.0/eps)*np.log(n)
-
-#     if verbose:
-#         print 'r: ', r
-#         print 'k: ', k
-
-#     for i in range(int(r)):
-#         v = Net.random_walk(k, seed_vec=seed_vec, verbose=False)
-#         approxhkpr[Net.node_to_index[v]] += 1
-#     approxhkpr = approxhkpr/r
-
-#     if normalized:
-#         return get_normalized_node_vector_values(Net, approxhkpr)
-#     else:
-#         return get_node_vector_values(Net, approxhkpr)
-
-
-# def approx_hkpr_seed(Net, t, start_node, eps=0.01, verbose=False, normalized=False):
-#     """
-#     An implementation of the ApproxHKPRseed algorithm using random walks.
-
-#     Parameters:
-#         t, temperature parameter
-#         start_node, the seed node
-#         eps, desired error parameter
-#         normalized, if set to true, output vector values normalized by
-#             node degree
-
-#     Output:
-#         a dictionary of node, vector values
-#     """
-#     # initialize 0-vector of size n
-#     n = Net.size
-#     approxhkpr = np.zeros(n)
-
-#     r = (16.0/eps**3)*np.log(n)
-#     # r = (16.0/eps**2)*np.log(n)
-#     # r = (16.0/eps)*np.log(n)
-
-#     K = (np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
-#     # K = t
-
-#     if verbose:
-#         print 'r: ', r
-#         print 'K: ', K
-
-#     steps = np.random.poisson(lam=t, size=r)
-
-#     for i in range(int(r)):
-#         k = steps[i]
-#         k = int(min(k,K))
-#         v = Net.random_walk_seed(k, start_node)
-#         approxhkpr[Net.node_to_index[v]] += 1
-#     approxhkpr = approxhkpr/r
-
-#     if normalized:
-#         return get_normalized_node_vector_values(Net, approxhkpr)
-#     else:
-#         return get_node_vector_values(Net, approxhkpr)
-
-
-# def approx_hkpr_seed_mp(Net, t, start_node, K=None, eps=0.01, verbose=False, normalized=False):
-#     """
-#     An implementation of the ApproxHKPRseed algorithm using random walks.
-
-#     Parameters:
-#         t, temperature parameter
-#         start_node, the seed node
-#         eps, desired error parameter
-#         normalized, if set to true, output vector values normalized by
-#             node degree
-
-#     Output:
-#         a dictionary of node, vector values
-#     """
-#     n = Net.size
-
-#     r = (16.0/eps**3)*np.log(n)
-#     # r = (16.0/eps**2)*np.log(n)
-#     # r = (16.0/eps)*np.log(n)
-#     # r = (16.0/eps**2)*np.log(100)
-
-#     if K is None:
-#         K = 2*(np.log(1.0/eps))/(np.log(np.log(1.0/eps)))
-#     elif K == 'mean':
-#         K = 2*t
-#     elif K == 'unlim':
-#         K = float("inf")
-
-#     if verbose:
-#         print 'r: ', r
-#         print 'K: ', K
-
-#     #split up the sampling over all processors and collect in a queue
-#     collect_samples = mp.Queue()
-#     num_processes = mp.cpu_count()
-#     def generate_samples(collect_samples):
-#         num_samples = int(np.ceil(r/num_processes))
-#         steps = np.random.poisson(lam=t, size=num_samples)
-#         approxhkpr_samples = np.zeros(n)
-#         # approxhkpr_samples = {}
-
-#         for i in xrange(num_samples):
-#             k = steps[i]
-#             k = int(min(k,K))
-#             v = Net.random_walk_seed(k, start_node)
-#             approxhkpr_samples[Net.node_to_index[v]] += 1
-#             # if v in approxhkpr_samples:
-#             #     approxhkpr_samples[v] += 1./r
-#             # else:
-#             #     approxhkpr_samples[v] = 1./r
-#         collect_samples.put(approxhkpr_samples)
-
-#     #set up a list of processes
-#     processes = [mp.Process(target=generate_samples, args=(collect_samples,))
-#                  for x in range(num_processes)]
-
-#     #run processes
-#     for p in processes:
-#         p.start()
-#     #exit completed processes
-#     for p in processes:
-#         p.join()
-
-#     #get process results from output queue
-#     cum_samples = [collect_samples.get() for p in processes]
-#     # approxhkpr = collections.Counter(cum_samples[0])
-#     # for i in range(1,len(cum_samples)):
-#     #     approxhkpr.update(cum_samples[i])
-#     # approxhkpr = dict(approxhkpr)
-#     approxhkpr = sum(cum_samples)
-#     approxhkpr = approxhkpr/r
-
-#     if normalized:
-#         return get_normalized_node_vector_values(Net, approxhkpr)
-#     else:
-#         return get_node_vector_values(Net, approxhkpr)
-#     # if normalized:
-#     #     for n in approxhkpr:
-#     #         approxhkpr[n] = approxhkpr[n]*1.0/Net.graph.degree(n)
-#     #     return approxhkpr
-#     # else:
-#     #     return approxhkpr
-
-
 def approx_hkpr_seed_mp_dict(Net, t, start_node, K=None, eps=0.01, verbose=False, normalized=False):
     """
     An implementation of the ApproxHKPRseed algorithm using random walks.
@@ -273,27 +87,6 @@ def approx_hkpr_seed_mp_dict(Net, t, start_node, K=None, eps=0.01, verbose=False
         return approxhkpr
     else:
         return approxhkpr
-
-
-# def approx_hkpr_err(true, appr, eps):
-#     """
-#     Compute the error according to the definition of component-wise additive
-#     and multiplicative error for approximate heat kernel pagerank vectors.
-
-#     This function outputs the total error beyond what we allow.
-#     """
-#     if true.size != appr.size:
-#         print 'vector dimensions do not match'
-#         return
-#     err = 0
-#     for i in range(true.size):
-#         if appr[i] == 0:
-#             comp_err = true[i] - eps
-#         else:
-#             comp_err = (abs(true[i]-appr[i])) - (eps*true[i])
-#         if comp_err > 0:
-#             err += comp_err
-#     return err
 
 
 def approx_hkpr_err_dict(true, appr, eps):
@@ -604,18 +397,18 @@ def local_cluster_pr(Net, start_node, target_cheeg=None):
     cheeg_ach = 0.0
     for j in range(len(rank)):
         sweep_set.append(rank[j])
-    # vol_ach = Net.volume(subset=sweep_set) #volume of sweep set
-	vol_ach += Net.graph.degree(rank[j])
-    #if vol_ach > (2./3)*Net.volume():
-	if vol_ach > 0.5*Net.volume():
+        # vol_ach = Net.volume(subset=sweep_set) #volume of sweep set
+        vol_ach += Net.graph.degree(rank[j])
+        #if vol_ach > (2./3)*Net.volume():
+        if vol_ach > 0.5*Net.volume():
             print 'NO CUT FOUND'
             return
         # cheeg_ach = Net.cheeger_ratio(sweep_set) #cheeger ratio of sweep set
-	#calculate edge boundary
+        #calculate edge boundary
         for nb in Net.graph.neighbors(rank[j]):
-	    if nb in sweep_set:
-		edge_bound_ach = edge_bound_ach - 1
-	    elif nb not in sweep_set:
+        if nb in sweep_set:
+        edge_bound_ach = edge_bound_ach - 1
+        elif nb not in sweep_set:
                 edge_bound_ach += 1
         cheeg_ach = float(edge_bound_ach)/vol_ach
         if cheeg_ach <= target_cheeg:
