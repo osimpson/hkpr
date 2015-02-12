@@ -137,8 +137,7 @@ def isim(x, y, k):
 #####################################################################
 
 
-def local_cluster_hkpr(Net, start_node, target_size, target_vol, target_cheeg,
-                       approx=False, eps=0.01):
+def local_cluster_hkpr(Net, start_node, target_size, target_vol, target_cheeg, approx=False, eps=0.01):
     """
     An implementation of the local cluster algorithm.
 
@@ -160,19 +159,19 @@ def local_cluster_hkpr(Net, start_node, target_size, target_vol, target_cheeg,
         2. the volume of the cluster
         3. the Cheeger ratio of the set
     """
-    t = (1./target_cheeg)*np.log( (2*np.sqrt(target_vol))/(1-eps) + 2*eps*target_size )
 
     print 'computing the heat kernel...'
-    if approx == 'matmult':
-        dn_heat_val = approx_hkpr_matmult(Net, t, seed_vec=seed_vec, eps=eps, verbose=False, normalized=True)
-    elif approx == 'rw':
-        # dn_heat_val = approx_hkpr_seed(Net, t, start_node, eps=eps, verbose=False, normalized=True)
-        dn_heat_val = approx_hkpr_seed_mp_dict(Net, t, start_node, eps=eps, verbose=False, normalized=True)
-    else:
+    if approx == 'exact':
+        t = (2.0/target_cheeg**(2))*np.log(target_size)
         dn_heat_val = Net.exp_hkpr(t, start_node, normalized=True)
+    elif approx == 'rw':
+        t = (1./target_cheeg)*np.log( (2*np.sqrt(target_vol))/(1-eps) + 2*eps*target_size )
+        # dn_heat_val = approx_hkpr_seed_mp(Net, t, start_node, eps=eps, verbose=False, normalized=True)
+        dn_heat_val = approx_hkpr_seed_mp_dict(Net, t, start_node, eps=eps, verbose=verbose, normalized=True)
+    else:
+        print 'unknown approximation technique...'
 
     #node ranking (this is a list of nodes!)
-    # rank = sorted(dn_heat_val, key=lambda k: dn_heat_val[k], reverse=True)
     rank = sorted(dn_heat_val, key=dn_heat_val.get, reverse=True)
 
     #perform a sweep
@@ -186,7 +185,7 @@ def local_cluster_hkpr(Net, start_node, target_size, target_vol, target_cheeg,
         vol_ach += Net.graph.degree(rank[j])
         if vol_ach > 2*target_vol:
             print 'NO CUT FOUND'
-            return
+            return None, None, None, None
         # cheeg_ach = Net.cheeger_ratio(sweep_set) #cheeger ratio of sweep set
         #calculate edge boundary
         for nb in Net.graph.neighbors(rank[j]):
@@ -202,10 +201,10 @@ def local_cluster_hkpr(Net, start_node, target_size, target_vol, target_cheeg,
                     sweep_heat_vals[nd] = dn_heat_val[nd]
                 else:
                     sweep_heat_vals[nd] = 0
-            return sweep_heat_vals, vol_ach, cheeg_ach
+            return sweep_set, sweep_heat_vals, vol_ach, cheeg_ach
 
     print 'NO CUT FOUND'
-    return None
+    return None, None, None, None
 
 
 def local_cluster_hkpr_mincheeg(Net, start_node, target_size=None,
@@ -240,14 +239,17 @@ def local_cluster_hkpr_mincheeg(Net, start_node, target_size=None,
         target_vol = Net.volume()/4.
     if target_cheeg is None:
         target_cheeg = 1./3
-    t = (1./target_cheeg)*np.log( (2*np.sqrt(target_vol))/(1-eps) + 2*eps*target_size )
 
     print 'computing the heat kernel...'
     if approx == 'exact':
+        t = (2.0/target_cheeg**(2))*np.log(target_size)
         dn_heat_val = Net.exp_hkpr(t, start_node, normalized=True)
+        print 't=', t
     elif approx == 'rw':
+        t = (1./target_cheeg)*np.log( (2*np.sqrt(target_vol))/(1-eps) + 2*eps*target_size )
         # dn_heat_val = approx_hkpr_seed_mp(Net, t, start_node, eps=eps, verbose=False, normalized=True)
         dn_heat_val = approx_hkpr_seed_mp_dict(Net, t, start_node, eps=eps, verbose=verbose, normalized=True)
+        print 't=', t
     else:
         print 'unknown approximation technique...'
 
@@ -278,10 +280,12 @@ def local_cluster_hkpr_mincheeg(Net, start_node, target_size=None,
             elif nb not in sweep_set:
                 edge_bound_ach += 1
         cheeg_ach = float(edge_bound_ach)/vol_ach
-        if cheeg_ach < min_cheeg:
-            min_sweep = sweep_set
-            best_vol = vol_ach
-            min_cheeg = cheeg_ach
+        if vol_ach >= target_vol/2 and cheeg_ach <= np.sqrt(8*target_cheeg):
+            if cheeg_ach < min_cheeg:
+                min_sweep = []
+                min_sweep.extend(sweep_set)
+                best_vol = vol_ach
+                min_cheeg = cheeg_ach
 
     sweep_heat_vals = {}
     for nd in Net.graph.nodes():
@@ -350,10 +354,12 @@ def local_cluster_hkpr_mincheeg_vec(Net, dn_heat_val, target_size=None,
             elif nb not in sweep_set:
                 edge_bound_ach += 1
         cheeg_ach = float(edge_bound_ach)/vol_ach
-        if cheeg_ach < min_cheeg:
-            min_sweep = sweep_set
-            best_vol = vol_ach
-            min_cheeg = cheeg_ach
+        if vol_ach >= target_vol/2 and cheeg_ach <= np.sqrt(8*target_cheeg):
+            if cheeg_ach < min_cheeg:
+                min_sweep = []
+                min_sweep.extend(sweep_set)
+                best_vol = vol_ach
+                min_cheeg = cheeg_ach
 
     sweep_heat_vals = {}
     for nd in Net.graph.nodes():
@@ -406,9 +412,9 @@ def local_cluster_pr(Net, start_node, target_cheeg=None):
         # cheeg_ach = Net.cheeger_ratio(sweep_set) #cheeger ratio of sweep set
         #calculate edge boundary
         for nb in Net.graph.neighbors(rank[j]):
-        if nb in sweep_set:
-        edge_bound_ach = edge_bound_ach - 1
-        elif nb not in sweep_set:
+            if nb in sweep_set:
+                edge_bound_ach = edge_bound_ach - 1
+            elif nb not in sweep_set:
                 edge_bound_ach += 1
         cheeg_ach = float(edge_bound_ach)/vol_ach
         if cheeg_ach <= target_cheeg:
@@ -452,7 +458,7 @@ def local_cluster_pr_mincheeg(Net, start_node, target_cheeg=None):
     print 'performing a sweep...'
     #perform a sweep
     sweep_set = []
-    vol_ach = 0
+    vol_ach = 0.0
     edge_bound_ach = 0
     cheeg_ach = 1.0
     min_sweep = []
@@ -474,7 +480,8 @@ def local_cluster_pr_mincheeg(Net, start_node, target_cheeg=None):
                 edge_bound_ach += 1
         cheeg_ach = float(edge_bound_ach)/vol_ach
         if cheeg_ach < min_cheeg:
-            min_sweep = sweep_set
+            min_sweep = []
+            min_sweep.extend(sweep_set)
             best_vol = vol_ach
             min_cheeg = cheeg_ach
 
