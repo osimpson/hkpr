@@ -25,11 +25,12 @@ generator = argv[1]
 n = int(argv[2])
 d = int(argv[3])
 p = float(argv[4])
-outfile = argv[5]
+target_size = float(argv[5])
+outfile = argv[6]
 
+target_cheeg = 0.1
 eps = 0.1
-target_cheeg = 0.05
-target_size = 100
+
 target_vol = d*target_size
 T = (1./target_cheeg)*np.log( (2*np.sqrt(target_vol))/(1-eps) + 2*eps*target_size )
 
