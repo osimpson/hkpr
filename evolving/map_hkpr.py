@@ -13,7 +13,7 @@ node 121: random, degree 1
 
 
 SEED_NODES = ['90', '111', '851', '121']
-T = 75.0
+TPARAM = 75.0
 
 
 def map_exp_hkpr(temporal_network, seed_nodes, output_dir):
@@ -24,12 +24,12 @@ def map_exp_hkpr(temporal_network, seed_nodes, output_dir):
     :param seed_nodes:
     :return:
     """
-    day_ranges = range(0, temporal_network.get_network_lifespan(), temporal_network.SECONDS_PER_DAY)
+    day_ranges = range(0, temporal_network.network_lifespan(), temporal_network.SECONDS_PER_DAY)
 
     for t in day_ranges:
         print "computing HKPR for static Graph G", str(t)
         try:
-            G_static = temporal_network.get_static_graph(t)
+            G_static = temporal_network.get_static_graph_at_t(t)
             for s in seed_nodes:
                 try:
                     hkpr_exact = G_static.exp_hkpr(temporal_network.t, s)
@@ -56,6 +56,10 @@ def run():
                       action="store",
                       help="Edgelist file",
                       default=None)
+    parser.add_option("--tparam",
+                      dest="tParam",
+                      help="temperature parameter",
+                      default=TPARAM)
     parser.add_option("--seednodes",
                       dest="seedNodes",
                       action="store",
@@ -69,6 +73,7 @@ def run():
     (options, args) = parser.parse_args()
 
     edge_list = options.edgeList
+    tparam = options.tParam
     seed_nodes = options.seedNodes
     results_dir = options.resultsDir
 
@@ -78,7 +83,7 @@ def run():
         source, dest, time = row.strip().split(' ')
         temporal_edge_list.append([source, dest, int(time)])
 
-    G = TemporalNetwork(temporal_edge_list, T)
+    G = TemporalNetwork(temporal_edge_list, tparam)
 
     map_exp_hkpr(G, seed_nodes, results_dir)
 

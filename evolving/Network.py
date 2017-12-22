@@ -273,6 +273,32 @@ class Network(object):
     #     return cur_node
 
 
+    def approx_hkpr(self, t, start_node, r, normalized=False):
+        """Random walk approximation of hkpr(t,f)
+        :param t: temperature
+        :param start_node: seed node
+        :param r: number of walks to sample for approximation
+        :param normalized: whether to normalize by degree
+        :return: a dictionary of node, vector values
+        """
+        approxhkpr = {}
+
+        for i in xrange(r):
+            k = np.random.poisson(lam=t)
+            v = self.random_walk_seed(k, start_node=start_node)
+            if v in approxhkpr:
+                approxhkpr[v] += 1./r
+            else:
+                approxhkpr[v] = 1./r
+
+        if normalized:
+            for n in approxhkpr:
+                approxhkpr[n] = approxhkpr[n] * 1.0 / self.graph.degree(n)
+            return approxhkpr
+        else:
+            return approxhkpr
+
+
     def nxpagerank(self, seed_vec, alpha=0.85, normalized=False):
         """
         Use networkx provided function for computing the pagerank of the
