@@ -1,5 +1,5 @@
 import networkx as nx
-from Network import *
+from Network import Network
 
 
 class TemporalNetwork(object):
@@ -37,6 +37,11 @@ class TemporalNetwork(object):
         alive = lambda x: x[2] < window_end and x[2] >= window_start
 
         alive_edge_list = [[x[0], x[1]] for x in self.temporal_edge_list if alive(x)]
+
+        if len(alive_edge_list) == 0:
+            print "static graph is empty"
+            return None
+
         G = Network(local_list=alive_edge_list)
 
         return G

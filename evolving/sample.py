@@ -23,9 +23,9 @@ EPS = 0.01
 DELTA = 0.01
 
 
-def map_approx_hkpr(G, start_node, eps, tau, delta, results_dir):
+def map_approx_hkpr(temporal_network, start_node, eps, tau, delta, results_dir):
     """Simulate the algorithm
-    :param G: temporal graph
+    :param temporal_network: temporal graph
     :param start_node:
     :param eps:
     :param tau:
@@ -34,26 +34,33 @@ def map_approx_hkpr(G, start_node, eps, tau, delta, results_dir):
     :return:
     """
     # sample times
-    T = G.network_lifespan()
-    n = G.number_of_nodes()
-    R1 = (3*np.log(n))/(delta*(eps**2))
-    R2 = (2*T*np.log(1.0/eps))/(tau*(eps**2))
+    T = temporal_network.network_lifespan()
+    n = temporal_network.number_of_nodes()
+    R1 = int(np.floor((3*np.log(n))/(delta*(eps**2))))
+    R2 = int(np.floor((2*T*np.log(1.0/eps))/(tau*(eps**2))))
 
-    print("Sampling R1 =", str(R1), "random walkers in R2 =", str(R2), "times!")
+    print "Looking for big changes around node", start_node
+    print "Sampling R1 =", str(R1), "random walkers in R2 =", str(R2), "times!"
 
-    sampled_times = np.random.choice(T, int(np.floor(R2)))  # with replacement
+    sampled_times = set(np.random.choice(T, R2))  # with replacement
     for t in sampled_times:
-        try:
-            Gt = G.get_static_graph_at_t(t)
+        print "computing random walks for static Graph G", str(t)
+        Gt = temporal_network.get_static_graph_at_t(t)
+        if Gt:
+            print "Static graph is size", Gt.size
             try:
-                scores = Gt.approx_hkpr(t, start_node, R1)
-                file_name = "seed" + str(s) + "_time" + str(t) + ".txt"
-                output_file = os.path.join(results_dir, "approx", file_name)
+                scores = Gt.approx_hkpr(temporal_network.t, start_node, R1)
+                dir_name = "seed" + str(start_node)
+                file_name = "seed" + str(start_node) + "_time" + str(t) + ".txt"
+                output_file = os.path.join(results_dir, "approx", dir_name, file_name)
                 save_vector(scores, output_file)
             except(KeyError):
-                print "Node", s, "is not present in graph G", str(t)
-        except:
+                print "Node", start_node, "is not present in graph G", str(t)
+                continue
+        else:
             print "G", str(t), "is empty..."
+            continue
+        break
 
 
 def save_vector(vec, output_file):
@@ -99,11 +106,10 @@ def run():
     (options, args) = parser.parse_args()
 
     edge_list = options.edgeList
-    tparam = options.tParam
+    tparam = float(options.tParam)
     seed_nodes = options.seedNodes
-    eps = options.eps
-    tau = options.tau
-    delta = options.delta
+    eps = float(options.eps)
+    delta = float(options.delta)
     results_dir = options.resultsDir
 
     # read in edge list
@@ -114,11 +120,12 @@ def run():
 
     G = TemporalNetwork(temporal_edge_list, tparam)
 
-    if tau is None:
+    if options.tau:
+        tau = float(options.tau)
+    elif options.tau is None:
         tau = G.SECONDS_PER_DAY
 
-    # for s in seed_nodes:
-    for s in [seed_nodes[0]]:
+    for s in seed_nodes:
         map_approx_hkpr(G, s, eps, tau, delta, results_dir)
 
 

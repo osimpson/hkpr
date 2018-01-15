@@ -1,6 +1,7 @@
 import networkx as nx
 import numpy as np
-import pydot
+from numpy import linalg as LA
+# import pydot
 import operator
 import scipy
 from scipy import sparse
@@ -41,23 +42,25 @@ class Network(object):
         # try:
         #     self.adj_mat = csc_matrix(nx.to_numpy_matrix(self.graph, nodelist=sorted(self.graph.nodes())))
         # except MemoryError:
-        self.adj_mat = lil_matrix((self.size, self.size))
+        # self.adj_mat = lil_matrix((self.size, self.size))
+        self.adj_mat = np.zeros((self.size, self.size))
         for node in self.graph.nodes():
             for neighbor in self.graph.neighbors(node):
                 self.adj_mat[self.node_to_index[node], self.node_to_index[neighbor]] = 1.0
         d = self.adj_mat.sum(axis=1)
         self.deg_vec = np.zeros(self.size)
-        # self.deg_mat = np.zeros((self.size, self.size))
-        self.deg_mat = lil_matrix((self.size, self.size))
-        self.deg_mat_inv = lil_matrix((self.size, self.size))
+        # self.deg_mat = lil_matrix((self.size, self.size))
+        # self.deg_mat_inv = lil_matrix((self.size, self.size))
+        self.deg_mat = np.zeros((self.size, self.size))
+        self.deg_mat_inv = np.zeros((self.size, self.size))
         for n in self.graph.nodes():
             i = self.node_to_index[n]
             self.deg_vec[i] = d[i]
             self.deg_mat[i,i] = d[i]
             self.deg_mat_inv[i,i] = 1./d[i]
-        self.adj_mat = csc_matrix(self.adj_mat)
-        self.deg_mat = csc_matrix(self.deg_mat)
-        self.deg_mat_inv = csc_matrix(self.deg_mat_inv)
+        # self.adj_mat = csc_matrix(self.adj_mat)
+        # self.deg_mat = csc_matrix(self.deg_mat)
+        # self.deg_mat_inv = csc_matrix(self.deg_mat_inv)
 
 
     # def combinatorial_laplacian(self):
@@ -236,7 +239,8 @@ class Network(object):
 
     def random_walk_seed_matmult(self, k, start_node):
         seed_vec = indicator_vector(self, start_node)
-        prod = np.dot(seed_vec, self.walk_mat**k)
+        # prod = np.dot(seed_vec, self.walk_mat()**k)
+        prod = np.dot(seed_vec, LA.matrix_power(self.walk_mat(), k))
         dist = np.ravel(prod)
 
         return np.random.choice(self.graph.nodes(), p=dist)
@@ -273,7 +277,7 @@ class Network(object):
     #     return cur_node
 
 
-    def approx_hkpr(self, t, start_node, r, normalized=False):
+    def approx_hkpr(self, t, start_node, r, normalized=False, matmult=False):
         """Random walk approximation of hkpr(t,f)
         :param t: temperature
         :param start_node: seed node
@@ -285,7 +289,10 @@ class Network(object):
 
         for i in xrange(r):
             k = np.random.poisson(lam=t)
-            v = self.random_walk_seed(k, start_node=start_node)
+            if matmult:
+                v = self.random_walk_seed_matmult(k, start_node=start_node)
+            else:
+                v = self.random_walk_seed(k, start_node=start_node)
             if v in approxhkpr:
                 approxhkpr[v] += 1./r
             else:
