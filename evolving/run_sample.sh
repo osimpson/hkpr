@@ -8,4 +8,4 @@ logdir=~/local_code/logs
 
 echo Running sampling process...
 
-python sample.py --edgelist ${edgelist} --resultsdir ${resultsdir} &> ${logdir}/sample.log
+python sample.py --edgelist ${edgelist} --resultsdir ${resultsdir} --seednodes 90 --eps 0.1 &> ${logdir}/sample.log

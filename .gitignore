@@ -1,0 +1,5 @@
+*.pyc
+evolving/results/exact/seed111/images
+evolving/results/exact/seed121/images
+evolving/results/exact/seed851/images
+evolving/results/exact/seed90/images

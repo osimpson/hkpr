@@ -49,7 +49,7 @@ def map_approx_hkpr(temporal_network, start_node, eps, tau, delta, results_dir):
         if Gt:
             print "Static graph is size", Gt.size
             try:
-                scores = Gt.approx_hkpr(temporal_network.t, start_node, R1)
+                scores = Gt.approx_hkpr(temporal_network.t, start_node, R1, matmult=True)
                 dir_name = "seed" + str(start_node)
                 file_name = "seed" + str(start_node) + "_time" + str(t) + ".txt"
                 output_file = os.path.join(results_dir, "approx", dir_name, file_name)
@@ -60,7 +60,6 @@ def map_approx_hkpr(temporal_network, start_node, eps, tau, delta, results_dir):
         else:
             print "G", str(t), "is empty..."
             continue
-        break
 
 
 def save_vector(vec, output_file):
@@ -84,7 +83,7 @@ def run():
     parser.add_option("--seednodes",
                       dest="seedNodes",
                       action="store",
-                      default=SEED_NODES)
+                      default=None)
     parser.add_option("--eps",
                       dest="eps",
                       help="approximation parameter",
@@ -107,7 +106,10 @@ def run():
 
     edge_list = options.edgeList
     tparam = float(options.tParam)
-    seed_nodes = options.seedNodes
+    if not options.seedNodes:
+        seed_nodes=SEED_NODES
+    else:
+        seed_nodes = [options.seedNodes]
     eps = float(options.eps)
     delta = float(options.delta)
     results_dir = options.resultsDir
