@@ -22,8 +22,12 @@ TPARAM = 75.0
 EPS = 0.01
 DELTA = 0.01
 
+TJ = 1987200
+TI = 1900800
 
-def map_approx_hkpr(temporal_network, start_node, eps, tau, delta, results_dir):
+
+def map_approx_hkpr(temporal_network, start_node, eps, tau, delta, results_dir,
+                    R1=None, R2=None):
     """Simulate the algorithm
     :param temporal_network: temporal graph
     :param start_node:
@@ -31,25 +35,42 @@ def map_approx_hkpr(temporal_network, start_node, eps, tau, delta, results_dir):
     :param tau:
     :param delta:
     :param results_dir:
+    :param R1: number of random walkers.  If not provided, computed from
+        the equations in the theory
+    :param R2: numver of time samples.  If not provided, computed from
+        the equations in the theory
     :return:
     """
     # sample times
     T = temporal_network.network_lifespan()
     n = temporal_network.number_of_nodes()
-    R1 = int(np.floor((3*np.log(n))/(delta*(eps**2))))
-    R2 = int(np.floor((2*T*np.log(1.0/eps))/(tau*(eps**2))))
+
+    if not R1:
+        R1 = int(np.floor((3*np.log(n))/(delta*(eps**2))))
+    if not R2:
+        R2 = int(np.floor((2*T*np.log(1.0/eps))/(tau*(eps**2))))
 
     print "Looking for big changes around node", start_node
     print "Sampling R1 =", str(R1), "random walkers in R2 =", str(R2), "times!"
 
-    sampled_times = set(np.random.choice(T, R2))  # with replacement
-    for t in sampled_times:
+    # sample R2 times with replacement
+    sampled_times = list(set(np.random.choice(T, R2)))
+    # throw out times outside range of interest
+    times_to_test = [x for x in sampled_times if (x >= TI - temporal_network.SECONDS_PER_DAY) and
+                     (x <= TJ + temporal_network.SECONDS_PER_DAY)]
+
+    for t in times_to_test:
         print "computing random walks for static Graph G", str(t)
+        # the static graph is defined to be all edges alive
+        # in times [t, t + 2 days]
         Gt = temporal_network.get_static_graph_at_t(t)
         if Gt:
             print "Static graph is size", Gt.size
             try:
+                # compute HKPR scores by sampling R1 random walkers
                 scores = Gt.approx_hkpr(temporal_network.t, start_node, R1, matmult=True)
+
+                # save results
                 dir_name = "seed" + str(start_node)
                 file_name = "seed" + str(start_node) + "_time" + str(t) + ".txt"
                 output_file = os.path.join(results_dir, "approx", dir_name, file_name)
@@ -60,6 +81,8 @@ def map_approx_hkpr(temporal_network, start_node, eps, tau, delta, results_dir):
         else:
             print "G", str(t), "is empty..."
             continue
+    print 'done sampling!'
+    return
 
 
 def save_vector(vec, output_file):
@@ -132,4 +155,5 @@ def run():
 
 
 if __name__ == "__main__":
+    print "here we go!"
     run()

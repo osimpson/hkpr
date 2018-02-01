@@ -238,12 +238,21 @@ class Network(object):
 
 
     def random_walk_seed_matmult(self, k, start_node):
+        """
+        Outputs the last node visited in a k-step random walk on the graph
+        starting from start_node.  Here the node is sampled from the probability
+        vector output by matrix multiply s*W^k
+        :param k:
+        :param start_node:
+        :return: indicator vector corresponding to last node visited
+        """
         seed_vec = indicator_vector(self, start_node)
-        # prod = np.dot(seed_vec, self.walk_mat()**k)
         prod = np.dot(seed_vec, LA.matrix_power(self.walk_mat(), k))
         dist = np.ravel(prod)
 
-        return np.random.choice(self.graph.nodes(), p=dist)
+        dest_node = np.random.choice(self.graph.nodes(), p=dist)
+
+        return indicator_vector(self, dest_node)
 
 
     def random_node(self):
@@ -277,7 +286,7 @@ class Network(object):
     #     return cur_node
 
 
-    def approx_hkpr(self, t, start_node, r, normalized=False, matmult=False):
+    def approx_hkpr_walk(self, t, start_node, r, normalized=False, matmult=False):
         """Random walk approximation of hkpr(t,f)
         :param t: temperature
         :param start_node: seed node
@@ -304,6 +313,44 @@ class Network(object):
             return approxhkpr
         else:
             return approxhkpr
+
+
+    def approx_hkpr(self, t, start_node, r, normalized=False, matmult=False):
+        """Random walk approximation of hkpr(t,f)
+
+        matmult is slightly optimized over approx_hkpr_walk
+        :param t: temperature
+        :param start_node: seed node
+        :param r: number of walks to sample for approximation
+        :param normalized: whether to normalize by degree
+        :return: a dictionary of node, vector values
+        """
+        if matmult:
+            k_vec = np.random.poisson(lam=t, size=r)
+            scores = 1./r * sum(self.random_walk_seed_matmult(k, start_node=start_node) for k in k_vec)
+
+            # translate to dict
+            approxhkpr = get_node_vector_values(self, scores)
+
+            return approxhkpr
+
+        else:
+            approxhkpr = {}
+
+            for i in xrange(r):
+                k = np.random.poisson(lam=t)
+                v = self.random_walk_seed(k, start_node=start_node)
+                if v in approxhkpr:
+                    approxhkpr[v] += 1./r
+                else:
+                    approxhkpr[v] = 1./r
+
+            if normalized:
+                for n in approxhkpr:
+                    approxhkpr[n] = approxhkpr[n] * 1.0 / self.graph.degree(n)
+                return approxhkpr
+            else:
+                return approxhkpr
 
 
     def nxpagerank(self, seed_vec, alpha=0.85, normalized=False):
